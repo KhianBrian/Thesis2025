@@ -12,15 +12,7 @@ console.log("WebSocket server running on /ws");
 wss.on("connection", (ws) => {
   console.log("Client connected");
 
-  ws.on("message", (message) => {
-    const data = JSON.parse(message.toString());
-    console.log("Received:", data);
-
-    // 🔴 BROADCAST TO ALL CONNECTED CLIENTS
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(data));
-      }
-    });
+  ws.on("message", (msg) => {
+    console.log("Received:", msg.toString());
   });
 });
