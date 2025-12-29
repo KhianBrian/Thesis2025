@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VitalLink Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h3>Heart Rate</h3>
+    <div class="value" id="hrValue">-- BPM</div>
+    <canvas id="hrChart"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>SpO₂</h3>
+    <div class="value" id="spo2Value">-- %</div>
+    <canvas id="spo2Chart"></canvas>
+  </div>
+
+  <div class="card wide">
+    <h3>Vitals History</h3>
+    <canvas id="historyChart"></canvas>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

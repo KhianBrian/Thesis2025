@@ -1,0 +1,27 @@
+body {
+  background: #0f172a;
+  font-family: Arial, sans-serif;
+  color: #e5e7eb;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  padding: 20px;
+}
+
+.card {
+  background: #111827;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.card.wide {
+  grid-column: span 2;
+}
+
+.value {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
