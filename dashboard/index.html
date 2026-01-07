@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>VitalLink Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
 
+<body>
 <div class="layout">
 
-  <!-- LEFT PANEL -->
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="patient-card">
       <h2>Hillary</h2>
@@ -28,9 +28,11 @@
       <h4>Activity Log</h4>
       <ul id="activityLog"></ul>
     </div>
+
+    <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
   </aside>
 
-  <!-- MAIN CONTENT -->
+  <!-- MAIN -->
   <main class="main">
 
     <!-- TOP CARDS -->
@@ -47,12 +49,15 @@
 
       <div class="card normal" id="fallStatusCard">
         <h3>Fall Status</h3>
-        <div id="fallStatus">Normal Movement</div>
+        <div class="fall-row">
+          <span id="fallIcon">🟢</span>
+          <span id="fallStatus">Normal Movement</span>
+        </div>
       </div>
     </div>
 
     <!-- CAMERA -->
-    <div class="camera-card resizable">
+    <div class="camera-card">
       <h3>Live Camera Feed</h3>
       <div class="camera-placeholder">
         No camera connected for this user.
