@@ -1,3 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VitalLink Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
 <div class="layout">
 
   <!-- LEFT PANEL -->
@@ -22,6 +32,8 @@
 
   <!-- MAIN CONTENT -->
   <main class="main">
+
+    <!-- TOP CARDS -->
     <div class="top-cards">
       <div class="card">
         <h3>Heart Rate</h3>
@@ -33,7 +45,7 @@
         <div id="spo2Value">-- %</div>
       </div>
 
-      <div class="card" id="fallStatusCard">
+      <div class="card normal" id="fallStatusCard">
         <h3>Fall Status</h3>
         <div id="fallStatus">Normal Movement</div>
       </div>
@@ -52,6 +64,7 @@
       <h3>Status History</h3>
       <canvas id="historyChart"></canvas>
     </div>
+
   </main>
 </div>
 
@@ -63,3 +76,7 @@
     <button onclick="acknowledgeFall()">Acknowledge</button>
   </div>
 </div>
+
+<script src="app.js"></script>
+</body>
+</html>
