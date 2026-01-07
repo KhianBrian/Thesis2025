@@ -1,27 +1,107 @@
-body {
-  background: #0f172a;
-  font-family: Arial, sans-serif;
-  color: #e5e7eb;
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: 100vh;
 }
 
-.container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+.sidebar {
+  background: #0b1220;
   padding: 20px;
+  overflow-y: auto;
+}
+
+.patient-card {
+  margin-bottom: 20px;
+}
+
+.patient-card ul {
+  padding-left: 18px;
+}
+
+.activity-log ul {
+  list-style: none;
+  padding: 0;
+}
+
+.activity-log li {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.main {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.top-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
 
 .card {
   background: #111827;
-  border-radius: 12px;
   padding: 20px;
+  border-radius: 12px;
 }
 
-.card.wide {
-  grid-column: span 2;
+#fallStatusCard.normal {
+  border-left: 6px solid #10b981;
 }
 
-.value {
-  font-size: 32px;
-  margin-bottom: 10px;
+#fallStatusCard.fall {
+  border-left: 6px solid #ef4444;
+}
+
+.camera-card {
+  margin-top: 20px;
+  background: #111827;
+  padding: 20px;
+  border-radius: 12px;
+  resize: vertical;
+  overflow: auto;
+}
+
+.camera-placeholder {
+  background: #000;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+.chart-card {
+  margin-top: 20px;
+  background: #111827;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+/* MODAL */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #7f1d1d;
+  padding: 40px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.modal-content button {
+  margin-top: 20px;
+  padding: 10px 30px;
+  font-size: 16px;
 }
