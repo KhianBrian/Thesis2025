@@ -4,6 +4,12 @@ const hrData = [];
 const spo2Data = [];
 const labels = [];
 const MAX_POINTS = 20;
+const MAX_LOGS = 12;
+
+// Thresholds
+const LOW_HR = 50;
+const HIGH_HR = 100;
+const LOW_SPO2 = 95;
 
 // CONNECT WS
 function connectWS() {
@@ -54,7 +60,8 @@ const historyChart = new Chart(
     },
     options: {
       animation: false,
-      responsive: true
+      responsive: true,
+      maintainAspectRatio: false
     }
   }
 );
@@ -66,22 +73,38 @@ function handleMessage(event) {
 
   const time = new Date(data.timestamp).toLocaleTimeString();
 
+  // HEART RATE
   if (data.type === "pr") {
     document.getElementById("hrValue").innerText = `${data.value} BPM`;
     hrData.push(data.value);
     labels.push(time);
+
+    if (data.value < LOW_HR) {
+      logEvent(`Low Heart Rate detected: ${data.value} BPM`);
+    }
+
+    if (data.value > HIGH_HR) {
+      logEvent(`High Heart Rate detected: ${data.value} BPM`);
+    }
   }
 
+  // SPO2
   if (data.type === "spo2") {
     document.getElementById("spo2Value").innerText = `${data.value} %`;
     spo2Data.push(data.value);
+
+    if (data.value < LOW_SPO2) {
+      logEvent(`Low SpO₂ detected: ${data.value}%`);
+    }
   }
 
+  // FALL
   if (data.type === "fall") {
     triggerFall();
     logEvent("Fall detected");
   }
 
+  // LIMIT DATA
   if (labels.length > MAX_POINTS) {
     labels.shift();
     hrData.shift();
@@ -113,14 +136,16 @@ function acknowledgeFall() {
   card.classList.add("normal");
 }
 
-// ACTIVITY LOG
+// ACTIVITY LOG (ABNORMAL EVENTS ONLY)
 function logEvent(text) {
   const log = document.getElementById("activityLog");
   const li = document.createElement("li");
   li.innerText = `${new Date().toLocaleTimeString()} — ${text}`;
 
   log.prepend(li);
-  if (log.children.length > 12) log.removeChild(log.lastChild);
+  if (log.children.length > MAX_LOGS) {
+    log.removeChild(log.lastChild);
+  }
 }
 
 // THEME

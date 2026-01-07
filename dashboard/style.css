@@ -190,3 +190,12 @@ body {
   border-radius: 8px;
   cursor: pointer;
 }
+
+/* Reduce Status History height */
+.chart-card {
+  height: 300px;
+}
+
+.chart-card canvas {
+  height: 220px !important;
+}
