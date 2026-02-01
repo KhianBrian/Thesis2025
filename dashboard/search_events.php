@@ -1,12 +1,20 @@
 <?php
-require_once __DIR__ . "/../db_connect.php";
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+header('Content-Type: application/json');
 
+require_once __DIR__ . "/../db_connect.php";
 
 $data = json_decode(file_get_contents("php://input"), true);
 
-$types = $data["types"];
-$start = $data["start"];
-$end   = $data["end"];
+$types = $data['types'] ?? [];
+$start = $data['start'] ?? null;
+$end   = $data['end'] ?? null;
+
+if (empty($types)) {
+  echo json_encode([]);
+  exit;
+}
 
 // Build placeholders for IN (...)
 $placeholders = implode(",", array_fill(0, count($types), "?"));
