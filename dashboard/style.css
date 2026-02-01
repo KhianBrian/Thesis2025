@@ -91,7 +91,7 @@ button:focus-visible {
 }
 
 /* ===============================
-   MAIN CONTENT
+   MAIN
 =============================== */
 .main {
   padding: 20px;
@@ -109,7 +109,6 @@ button:focus-visible {
   margin-bottom: 20px;
 }
 
-
 .search-toggle-btn {
   background: var(--accent-blue);
   color: #fff;
@@ -119,16 +118,11 @@ button:focus-visible {
   border-radius: 10px;
   cursor: pointer;
   box-shadow: 0 6px 16px rgba(0,0,0,0.25);
-  transition: background 0.2s ease;
 }
 
 body.light .search-toggle-btn {
   background: #e5e7eb;
   color: #020617;
-}
-
-.search-toggle-btn:hover {
-  opacity: 0.9;
 }
 
 /* ===============================
@@ -164,7 +158,6 @@ body.light .search-toggle-btn {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
 }
 
 #fallStatusCard.normal {
@@ -173,6 +166,7 @@ body.light .search-toggle-btn {
 
 #fallStatusCard.fall {
   border-left: 6px solid var(--accent-red);
+  background: linear-gradient(135deg, #450a0a, var(--bg-card));
 }
 
 /* ===============================
@@ -195,7 +189,7 @@ body.light .search-toggle-btn {
 }
 
 /* ===============================
-   STATUS HISTORY
+   CHART
 =============================== */
 .chart-card {
   margin-top: 24px;
@@ -233,8 +227,16 @@ body.light .search-toggle-btn {
   text-align: center;
 }
 
+.modal-content button {
+  margin-top: 20px;
+  padding: 10px 30px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 /* ===============================
-   EVENT SEARCH MODAL OVERLAY
+   EVENT SEARCH MODAL
 =============================== */
 .modal-overlay {
   position: fixed;
@@ -259,14 +261,12 @@ body.light .search-toggle-btn {
   border-radius: 18px;
   padding: 20px;
   overflow-y: auto;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.6);
 }
 
 .search-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
 }
 
 .close-btn {
@@ -274,53 +274,20 @@ body.light .search-toggle-btn {
   border: none;
   font-size: 20px;
   cursor: pointer;
-  color: var(--text-muted);
-}
-
-.close-btn:hover {
-  color: var(--text-primary);
 }
 
 /* ===============================
    FILTERS & TABLE
 =============================== */
-.filter-group {
-  margin-bottom: 16px;
-}
-
-.group-title {
-  font-weight: 600;
-}
-
-.checkbox-group {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.filter-row {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.filter-row div {
-  display: flex;
-  flex-direction: column;
-}
-
-.filter-actions {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
+.filter-group { margin-bottom: 16px; }
+.checkbox-group { display: flex; gap: 16px; flex-wrap: wrap; }
+.filter-row { display: flex; gap: 16px; margin-bottom: 16px; }
 
 .primary-btn {
   background: var(--accent-green);
   border: none;
   padding: 10px 16px;
   border-radius: 8px;
-  font-weight: 600;
   cursor: pointer;
 }
 
@@ -336,27 +303,16 @@ body.light .search-toggle-btn {
 #resultsTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
 }
 
 #resultsTable th,
 #resultsTable td {
   padding: 10px;
-  text-align: left;
-}
-
-#resultsTable thead {
-  background: #020617;
-}
-
-#resultsTable tbody tr:nth-child(even) {
-  background: rgba(255,255,255,0.03);
 }
 
 /* ===============================
-   THEME ICON TOGGLE
+   THEME ICON
 =============================== */
-
 .theme-icon {
   font-size: 20px;
   cursor: pointer;
@@ -367,11 +323,4 @@ body.light .search-toggle-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  user-select: none;
-  transition: background 0.2s ease, transform 0.2s ease;
-}
-
-.theme-icon:hover {
-  background: var(--bg-card);
-  transform: scale(1.05);
 }

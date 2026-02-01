@@ -12,24 +12,39 @@ const HIGH_HR = 100;
 const LOW_SPO2 = 95;
 
 // ===============================
-// WEBSOCKET
+// WEBSOCKET WITH RECONNECT
 // ===============================
+let retryDelay = 1000;
+
 function connectWS() {
+  if (ws && ws.readyState !== WebSocket.CLOSED) {
+    ws.close();
+  }
+
   ws = new WebSocket("wss://thesis2025-h4v3.onrender.com/ws");
 
-  ws.onopen = () => console.log("WS Connected");
-
-  ws.onclose = () => {
-    console.warn("WS Disconnected — retrying");
-    setTimeout(connectWS, 3000);
+  ws.onopen = () => {
+    console.log("[WS] Connected");
+    retryDelay = 1000;
   };
 
-  ws.onerror = e => console.error("WS Error", e);
+  ws.onclose = () => {
+    console.warn("[WS] Disconnected — reconnecting in", retryDelay);
+    setTimeout(connectWS, retryDelay);
+    retryDelay = Math.min(retryDelay * 2, 30000);
+  };
+
+  ws.onerror = () => {
+    console.error("[WS] Error");
+    ws.close();
+  };
+
   ws.onmessage = handleMessage;
 }
 
 connectWS();
 
+// HEARTBEAT
 setInterval(() => {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: "ping" }));
@@ -44,11 +59,25 @@ const historyChart = new Chart(document.getElementById("historyChart"), {
   data: {
     labels,
     datasets: [
-      { label: "Heart Rate", data: hrData, borderColor: "#3b82f6", tension: 0.3 },
-      { label: "SpO₂", data: spo2Data, borderColor: "#10b981", tension: 0.3 }
+      {
+        label: "Heart Rate",
+        data: hrData,
+        borderColor: "#3b82f6",
+        tension: 0.3
+      },
+      {
+        label: "SpO₂",
+        data: spo2Data,
+        borderColor: "#10b981",
+        tension: 0.3
+      }
     ]
   },
-  options: { animation: false, responsive: true, maintainAspectRatio: false }
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false
+  }
 });
 
 // ===============================
@@ -60,26 +89,82 @@ function handleMessage(event) {
 
   const time = new Date(data.timestamp).toLocaleTimeString();
 
+  // HEART RATE
   if (data.type === "pr") {
+    document.getElementById("hrValue").innerText = `${data.value} BPM`;
     hrData.push(data.value);
     labels.push(time);
-    document.getElementById("hrValue").innerText = `${data.value} BPM`;
+
+    if (data.value < LOW_HR) logEvent(`Low Heart Rate: ${data.value} BPM`);
+    if (data.value > HIGH_HR) logEvent(`High Heart Rate: ${data.value} BPM`);
   }
 
+  // SPO2
   if (data.type === "spo2") {
-    spo2Data.push(data.value);
     document.getElementById("spo2Value").innerText = `${data.value} %`;
+    spo2Data.push(data.value);
+
+    if (data.value < LOW_SPO2) {
+      logEvent(`Low SpO₂: ${data.value}%`);
+    }
   }
 
+  // FALL
+  if (data.type === "fall") {
+    triggerFall();
+    logEvent("Fall detected");
+  }
+
+  // LIMIT DATA
   if (labels.length > MAX_POINTS) {
-    labels.shift(); hrData.shift(); spo2Data.shift();
+    labels.shift();
+    hrData.shift();
+    spo2Data.shift();
   }
 
   historyChart.update();
 }
 
 // ===============================
-// EVENT SEARCH MODAL LOGIC
+// FALL HANDLING
+// ===============================
+function triggerFall() {
+  document.getElementById("fallStatus").innerText = "Fall Detected";
+  document.getElementById("fallIcon").innerText = "🔴";
+
+  const card = document.getElementById("fallStatusCard");
+  card.classList.remove("normal");
+  card.classList.add("fall");
+
+  document.getElementById("fallModal").classList.remove("hidden");
+}
+
+function acknowledgeFall() {
+  document.getElementById("fallModal").classList.add("hidden");
+  document.getElementById("fallStatus").innerText = "Normal Movement";
+  document.getElementById("fallIcon").innerText = "🟢";
+
+  const card = document.getElementById("fallStatusCard");
+  card.classList.remove("fall");
+  card.classList.add("normal");
+}
+
+// ===============================
+// ACTIVITY LOG
+// ===============================
+function logEvent(text) {
+  const log = document.getElementById("activityLog");
+  const li = document.createElement("li");
+  li.innerText = `${new Date().toLocaleTimeString()} — ${text}`;
+
+  log.prepend(li);
+  if (log.children.length > MAX_LOGS) {
+    log.removeChild(log.lastChild);
+  }
+}
+
+// ===============================
+// EVENT SEARCH MODAL
 // ===============================
 const openBtn = document.getElementById("openSearchModal");
 const closeBtn = document.getElementById("closeSearchModal");
@@ -148,16 +233,13 @@ function renderResults(data) {
 }
 
 // ===============================
-// THEME TOGGLE ICON (SUN / MOON)
+// THEME TOGGLE
 // ===============================
 const themeToggle = document.getElementById("themeToggle");
 
 function updateThemeIcon() {
-  if (document.body.classList.contains("light")) {
-    themeToggle.textContent = "☀️";
-  } else {
-    themeToggle.textContent = "🌙";
-  }
+  themeToggle.textContent =
+    document.body.classList.contains("light") ? "☀️" : "🌙";
 }
 
 themeToggle.addEventListener("click", () => {
@@ -165,6 +247,4 @@ themeToggle.addEventListener("click", () => {
   updateThemeIcon();
 });
 
-// Set correct icon on page load
 updateThemeIcon();
-
