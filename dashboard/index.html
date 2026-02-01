@@ -38,8 +38,7 @@
       <button id="openSearchModal" class="search-toggle-btn">
         🔍 Event Search
       </button>
-
-      <div class="theme-icon" id="themeToggle" title="Toggle theme">🌙</div>
+      <div class="theme-icon" id="themeToggle">🌙</div>
     </div>
 
     <!-- TOP CARDS -->
@@ -92,6 +91,12 @@
 <!-- EVENT SEARCH MODAL -->
 <div id="searchModal" class="modal-overlay hidden">
   <div class="search-modal">
+
+    <!-- LOADING OVERLAY -->
+    <div id="searchLoading" class="search-loading hidden">
+      <div class="spinner"></div>
+      <p>Fetching data…</p>
+    </div>
 
     <header class="search-modal-header">
       <h3>Search Health Events</h3>

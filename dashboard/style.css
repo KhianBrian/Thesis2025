@@ -324,3 +324,70 @@ body.light .search-toggle-btn {
   align-items: center;
   justify-content: center;
 }
+
+/* ===============================
+   LOADING OVERLAY
+=============================== */
+.search-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.search-loading.hidden {
+  display: none;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid rgba(255,255,255,0.3);
+  border-top: 5px solid #22c55e;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===============================
+   PRINT – ALLOW UNLIMITED DATA
+=============================== */
+@media print {
+
+  body * {
+    visibility: hidden;
+  }
+
+  .search-modal,
+  .search-modal * {
+    visibility: visible;
+  }
+
+  .search-modal {
+    position: static !important;
+    width: 100%;
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+}

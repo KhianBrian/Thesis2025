@@ -248,3 +248,77 @@ themeToggle.addEventListener("click", () => {
 });
 
 updateThemeIcon();
+
+// ===============================
+// EVENT SEARCH BACKEND
+// ===============================
+const loadingOverlay = document.getElementById("searchLoading");
+
+document.getElementById("selectAll").addEventListener("change", e => {
+  document.querySelectorAll(".eventType")
+    .forEach(cb => cb.checked = e.target.checked);
+});
+
+document.getElementById("applyFilter").addEventListener("click", () => {
+  const types = [...document.querySelectorAll(".eventType")]
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+
+  if (types.length === 0) {
+    alert("Select at least one event type");
+    return;
+  }
+
+  loadingOverlay.classList.remove("hidden");
+
+  fetch("search_events.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      types,
+      start: document.getElementById("startTime").value,
+      end: document.getElementById("endTime").value
+    })
+  })
+    .then(res => res.json())
+    .then(data => {
+      renderResults(data);
+      loadingOverlay.classList.add("hidden");
+    })
+    .catch(err => {
+      console.error("Search error:", err);
+      loadingOverlay.classList.add("hidden");
+      alert("Failed to fetch data.");
+    });
+});
+
+function renderResults(data) {
+  const tbody = document.querySelector("#resultsTable tbody");
+  tbody.innerHTML = "";
+
+  if (data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4">No results found.</td></tr>`;
+    return;
+  }
+
+  data.forEach(row => {
+    let value = "-";
+    let height = "-";
+
+    if (row.eventtype === "HeartRate") value = row.heartrate + " BPM";
+    if (row.eventtype === "SpO2") value = row.spo2 + " %";
+    if (row.eventtype === "Fall") {
+      value = "FALL";
+      height = row.estimatedheight ?? "-";
+    }
+
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${new Date(row.eventtime).toLocaleString()}</td>
+        <td>${row.eventtype}</td>
+        <td>${value}</td>
+        <td>${height}</td>
+      </tr>
+    `);
+  });
+}
