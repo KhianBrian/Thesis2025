@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VitalLink Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="patient-card">
+      <h2>Hillary</h2>
+      <p>Age: 82</p>
+
+      <h4>Medical Conditions</h4>
+      <ul>
+        <li>Hypertension</li>
+        <li>Type 2 Diabetes</li>
+        <li>Arthritis</li>
+      </ul>
+    </div>
+
+    <div class="activity-log">
+      <h4>Activity Log</h4>
+      <ul id="activityLog"></ul>
+    </div>
+
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- TOP ACTION BAR -->
+    <div class="top-action-bar">
+      <button id="openSearchModal" class="search-toggle-btn">
+        🔍 Event Search
+      </button>
+    
+    <div class="theme-icon" id="themeToggle" title="Toggle theme">
+    🌙
+    </div>
+    </div>
+
+    <!-- TOP CARDS -->
+    <div class="top-cards">
+      <div class="card">
+        <h3>Heart Rate</h3>
+        <div id="hrValue">-- BPM</div>
+      </div>
+
+      <div class="card">
+        <h3>SpO₂</h3>
+        <div id="spo2Value">-- %</div>
+      </div>
+
+      <div class="card normal" id="fallStatusCard">
+        <h3>Fall Status</h3>
+        <div class="fall-row">
+          <span id="fallIcon">🟢</span>
+          <span id="fallStatus">Normal Movement</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAMERA -->
+    <div class="camera-card">
+      <h3>Live Camera Feed</h3>
+      <div class="camera-placeholder">
+        No camera connected for this user.
+      </div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-card">
+      <h3>Status History</h3>
+      <canvas id="historyChart"></canvas>
+    </div>
+
+  </main>
+</div>
+
+<!-- FALL MODAL -->
+<div id="fallModal" class="modal hidden">
+  <div class="modal-content">
+    <h1>⚠ FALL DETECTED</h1>
+    <p>Immediate attention required.</p>
+    <button onclick="acknowledgeFall()">Acknowledge</button>
+  </div>
+</div>
+
+<!-- EVENT SEARCH MODAL -->
+<div id="searchModal" class="modal-overlay hidden">
+  <div class="search-modal">
+
+    <header class="search-modal-header">
+      <h3>Search Health Events</h3>
+      <button id="closeSearchModal" class="close-btn">✕</button>
+    </header>
+
+    <div class="filter-group">
+      <label class="group-title">Event Type</label>
+      <div class="checkbox-group">
+        <label><input type="checkbox" class="eventType" value="HeartRate" checked> Heart Rate</label>
+        <label><input type="checkbox" class="eventType" value="SpO2" checked> SpO₂</label>
+        <label><input type="checkbox" class="eventType" value="Fall" checked> Fall</label>
+        <label><input type="checkbox" id="selectAll" checked> Select All</label>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <div>
+        <label>Start</label>
+        <input type="datetime-local" id="startTime">
+      </div>
+      <div>
+        <label>End</label>
+        <input type="datetime-local" id="endTime">
+      </div>
+    </div>
+
+    <div class="filter-actions">
+      <button id="applyFilter" class="primary-btn">Apply Filter</button>
+      <button onclick="window.print()" class="secondary-btn">Print</button>
+    </div>
+
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Event</th>
+          <th>Value</th>
+          <th>Height (m)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

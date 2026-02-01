@@ -1,0 +1,14 @@
+# Environment / secrets
+db_connect.php
+.env
+
+# Node / WS
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log
