@@ -1,5 +1,6 @@
 <?php
-require "../db_connect.php";
+require_once __DIR__ . "/../db_connect.php";
+
 
 $data = json_decode(file_get_contents("php://input"), true);
 
