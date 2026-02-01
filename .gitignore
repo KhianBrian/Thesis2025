@@ -1,5 +1,4 @@
 # Environment / secrets
-db_connect.php
 .env
 
 # Node / WS
