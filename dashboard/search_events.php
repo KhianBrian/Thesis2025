@@ -16,8 +16,22 @@ if (empty($types)) {
   exit;
 }
 
-// Build placeholders for IN (...)
+$conditions = [];
+$params = [];
+
+// Event types
 $placeholders = implode(",", array_fill(0, count($types), "?"));
+$conditions[] = "e.eventtype IN ($placeholders)";
+$params = array_merge($params, $types);
+
+// Time range (ONLY if both are present)
+if ($start && $end) {
+  $conditions[] = "e.eventtime BETWEEN ? AND ?";
+  $params[] = $start;
+  $params[] = $end;
+}
+
+$where = implode(" AND ", $conditions);
 
 $sql = "
 SELECT
@@ -31,15 +45,18 @@ FROM event_table e
 LEFT JOIN hr_event hr ON e.eventid = hr.eventid
 LEFT JOIN spo2_event sp ON e.eventid = sp.eventid
 LEFT JOIN fall_event f ON e.eventid = f.eventid
-WHERE e.eventtype IN ($placeholders)
-AND e.eventtime BETWEEN ? AND ?
+WHERE $where
 ORDER BY e.eventtime DESC
 ";
 
-$stmt = $pdo->prepare($sql);
-
-// Bind parameters in correct order
-$params = array_merge($types, [$start, $end]);
-$stmt->execute($params);
-
-echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+try {
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute($params);
+  echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+} catch (Throwable $e) {
+  http_response_code(500);
+  echo json_encode([
+    "error" => "Query failed",
+    "details" => $e->getMessage()
+  ]);
+}
