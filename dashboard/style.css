@@ -145,8 +145,7 @@ body.light .search-toggle-btn {
   color: var(--text-muted);
 }
 
-#hrValue,
-#spo2Value {
+#hrValue{
   font-size: 32px;
   font-weight: 700;
 }

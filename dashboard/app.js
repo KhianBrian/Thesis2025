@@ -1,7 +1,6 @@
 let ws;
 
 const hrData = [];
-const spo2Data = [];
 const labels = [];
 const MAX_POINTS = 20;
 const MAX_LOGS = 12;
@@ -9,7 +8,6 @@ const MAX_LOGS = 12;
 // Thresholds
 const LOW_HR = 50;
 const HIGH_HR = 100;
-const LOW_SPO2 = 95;
 
 // ===============================
 // WEBSOCKET WITH RECONNECT
@@ -64,12 +62,6 @@ const historyChart = new Chart(document.getElementById("historyChart"), {
         data: hrData,
         borderColor: "#3b82f6",
         tension: 0.3
-      },
-      {
-        label: "SpO₂",
-        data: spo2Data,
-        borderColor: "#10b981",
-        tension: 0.3
       }
     ]
   },
@@ -99,16 +91,6 @@ function handleMessage(event) {
     if (data.value > HIGH_HR) logEvent(`High Heart Rate: ${data.value} BPM`);
   }
 
-  // SPO2
-  if (data.type === "spo2") {
-    document.getElementById("spo2Value").innerText = `${data.value} %`;
-    spo2Data.push(data.value);
-
-    if (data.value < LOW_SPO2) {
-      logEvent(`Low SpO₂: ${data.value}%`);
-    }
-  }
-
   // FALL
   if (data.type === "fall") {
     triggerFall();
@@ -119,7 +101,6 @@ function handleMessage(event) {
   if (labels.length > MAX_POINTS) {
     labels.shift();
     hrData.shift();
-    spo2Data.shift();
   }
 
   historyChart.update();
@@ -184,74 +165,6 @@ document.addEventListener("keydown", e => {
 // ===============================
 // EVENT SEARCH BACKEND
 // ===============================
-document.getElementById("selectAll").addEventListener("change", e => {
-  document.querySelectorAll(".eventType")
-    .forEach(cb => cb.checked = e.target.checked);
-});
-
-document.getElementById("applyFilter").addEventListener("click", () => {
-  const types = [...document.querySelectorAll(".eventType")]
-    .filter(cb => cb.checked)
-    .map(cb => cb.value);
-
-  fetch("search_events.php", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      types,
-      start: document.getElementById("startTime").value,
-      end: document.getElementById("endTime").value
-    })
-  })
-    .then(res => res.json())
-    .then(renderResults);
-});
-
-function renderResults(data) {
-  const tbody = document.querySelector("#resultsTable tbody");
-  tbody.innerHTML = "";
-
-  data.forEach(row => {
-    let value = "-";
-    let height = "-";
-
-    if (row.eventtype === "HeartRate") value = row.heartrate + " BPM";
-    if (row.eventtype === "SpO2") value = row.spo2 + " %";
-    if (row.eventtype === "Fall") {
-      value = "FALL";
-      height = row.estimatedheight ?? "-";
-    }
-
-    tbody.innerHTML += `
-      <tr>
-        <td>${new Date(row.eventtime).toLocaleString()}</td>
-        <td>${row.eventtype}</td>
-        <td>${value}</td>
-        <td>${height}</td>
-      </tr>`;
-  });
-}
-
-// ===============================
-// THEME TOGGLE
-// ===============================
-const themeToggle = document.getElementById("themeToggle");
-
-function updateThemeIcon() {
-  themeToggle.textContent =
-    document.body.classList.contains("light") ? "☀️" : "🌙";
-}
-
-themeToggle.addEventListener("click", () => {
-  document.body.classList.toggle("light");
-  updateThemeIcon();
-});
-
-updateThemeIcon();
-
-// ===============================
-// EVENT SEARCH BACKEND
-// ===============================
 const loadingOverlay = document.getElementById("searchLoading");
 
 document.getElementById("selectAll").addEventListener("change", e => {
@@ -306,7 +219,6 @@ function renderResults(data) {
     let height = "-";
 
     if (row.eventtype === "HeartRate") value = row.heartrate + " BPM";
-    if (row.eventtype === "SpO2") value = row.spo2 + " %";
     if (row.eventtype === "Fall") {
       value = "FALL";
       height = row.estimatedheight ?? "-";
@@ -322,3 +234,20 @@ function renderResults(data) {
     `);
   });
 }
+
+// ===============================
+// THEME TOGGLE
+// ===============================
+const themeToggle = document.getElementById("themeToggle");
+
+function updateThemeIcon() {
+  themeToggle.textContent =
+    document.body.classList.contains("light") ? "☀️" : "🌙";
+}
+
+themeToggle.addEventListener("click", () => {
+  document.body.classList.toggle("light");
+  updateThemeIcon();
+});
+
+updateThemeIcon();
