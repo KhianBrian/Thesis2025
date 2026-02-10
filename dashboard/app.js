@@ -81,7 +81,6 @@ function handleMessage(event) {
 
   const time = new Date(data.timestamp).toLocaleTimeString();
 
-  // HEART RATE
   if (data.type === "pr") {
     document.getElementById("hrValue").innerText = `${data.value} BPM`;
     hrData.push(data.value);
@@ -91,13 +90,11 @@ function handleMessage(event) {
     if (data.value > HIGH_HR) logEvent(`High Heart Rate: ${data.value} BPM`);
   }
 
-  // FALL
   if (data.type === "fall") {
     triggerFall();
     logEvent("Fall detected");
   }
 
-  // LIMIT DATA
   if (labels.length > MAX_POINTS) {
     labels.shift();
     hrData.shift();
@@ -145,66 +142,82 @@ function logEvent(text) {
 }
 
 // ===============================
-// EVENT SEARCH MODAL
+// EVENT SEARCH MODAL (SAFE)
 // ===============================
 const openBtn = document.getElementById("openSearchModal");
 const closeBtn = document.getElementById("closeSearchModal");
 const modal = document.getElementById("searchModal");
 
-openBtn.addEventListener("click", () => modal.classList.remove("hidden"));
-closeBtn.addEventListener("click", () => modal.classList.add("hidden"));
+if (openBtn && modal) {
+  openBtn.addEventListener("click", () => modal.classList.remove("hidden"));
+}
 
-modal.addEventListener("click", e => {
-  if (e.target === modal) modal.classList.add("hidden");
-});
+if (closeBtn && modal) {
+  closeBtn.addEventListener("click", () => modal.classList.add("hidden"));
+}
+
+if (modal) {
+  modal.addEventListener("click", e => {
+    if (e.target === modal) modal.classList.add("hidden");
+  });
+}
 
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") modal.classList.add("hidden");
+  if (e.key === "Escape" && modal) modal.classList.add("hidden");
 });
 
 // ===============================
-// EVENT SEARCH BACKEND
+// EVENT SEARCH BACKEND (SAFE)
 // ===============================
 const loadingOverlay = document.getElementById("searchLoading");
 
-document.getElementById("selectAll").addEventListener("change", e => {
-  document.querySelectorAll(".eventType")
-    .forEach(cb => cb.checked = e.target.checked);
-});
+const selectAll = document.getElementById("selectAll");
+if (selectAll) {
+  selectAll.addEventListener("change", e => {
+    document.querySelectorAll(".eventType")
+      .forEach(cb => cb.checked = e.target.checked);
+  });
+}
 
-document.getElementById("applyFilter").addEventListener("click", () => {
-  const types = [...document.querySelectorAll(".eventType")]
-    .filter(cb => cb.checked)
-    .map(cb => cb.value);
+const applyFilter = document.getElementById("applyFilter");
+if (applyFilter) {
+  applyFilter.addEventListener("click", () => {
+    const types = [...document.querySelectorAll(".eventType")]
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
 
-  if (types.length === 0) {
-    alert("Select at least one event type");
-    return;
-  }
+    if (types.length === 0) {
+      alert("Select at least one event type");
+      return;
+    }
 
-  loadingOverlay.classList.remove("hidden");
+    if (loadingOverlay) loadingOverlay.classList.remove("hidden");
 
-  fetch("search_events.php", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      types,
-      start: document.getElementById("startTime").value,
-      end: document.getElementById("endTime").value
+    fetch("search_events.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        types,
+        start: document.getElementById("startTime").value,
+        end: document.getElementById("endTime").value
+      })
     })
-  })
-    .then(res => res.json())
-    .then(data => {
-      renderResults(data);
-      loadingOverlay.classList.add("hidden");
-    })
-    .catch(err => {
-      console.error("Search error:", err);
-      loadingOverlay.classList.add("hidden");
-      alert("Failed to fetch data.");
-    });
-});
+      .then(res => res.json())
+      .then(data => {
+        renderResults(data);
+        if (loadingOverlay) loadingOverlay.classList.add("hidden");
+      })
+      .catch(err => {
+        console.error("Search error:", err);
+        if (loadingOverlay) loadingOverlay.classList.add("hidden");
+        alert("Failed to fetch data.");
+      });
+  });
+}
 
+// ===============================
+// RENDER RESULTS
+// ===============================
 function renderResults(data) {
   const tbody = document.querySelector("#resultsTable tbody");
   tbody.innerHTML = "";
@@ -236,18 +249,21 @@ function renderResults(data) {
 }
 
 // ===============================
-// THEME TOGGLE
+// THEME TOGGLE (SAFE)
 // ===============================
 const themeToggle = document.getElementById("themeToggle");
 
 function updateThemeIcon() {
+  if (!themeToggle) return;
   themeToggle.textContent =
     document.body.classList.contains("light") ? "☀️" : "🌙";
 }
 
-themeToggle.addEventListener("click", () => {
-  document.body.classList.toggle("light");
-  updateThemeIcon();
-});
+if (themeToggle) {
+  themeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("light");
+    updateThemeIcon();
+  });
+}
 
 updateThemeIcon();
