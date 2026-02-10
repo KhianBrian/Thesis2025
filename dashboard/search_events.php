@@ -1,5 +1,6 @@
 <?php
-ini_set('display_errors', 1);
+// DO NOT echo PHP errors in JSON responses
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
 header('Content-Type: application/json');
@@ -32,7 +33,7 @@ SELECT
     e.eventtype,
     e.eventtime,
     hr.heartrate,
-    h.heightcm
+    h.heightcm AS estimatedheight
 FROM event_table e
 LEFT JOIN hr_event hr ON e.eventid = hr.eventid
 LEFT JOIN height_event h ON e.eventid = h.eventid
@@ -46,3 +47,4 @@ $params = array_merge($types, [$start, $end]);
 $stmt->execute($params);
 
 echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+exit;
