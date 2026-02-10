@@ -202,8 +202,9 @@ if (applyFilter) {
         end: document.getElementById("endTime").value
       })
     })
-      .then(res => res.json())
-      .then(data => {
+      .then(res => res.text())
+      .then(text => {
+        const data = text ? JSON.parse(text) : [];
         renderResults(data);
         if (loadingOverlay) loadingOverlay.classList.add("hidden");
       })
@@ -212,6 +213,7 @@ if (applyFilter) {
         if (loadingOverlay) loadingOverlay.classList.add("hidden");
         alert("Failed to fetch data.");
       });
+
   });
 }
 
