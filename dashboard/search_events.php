@@ -6,7 +6,7 @@ header('Content-Type: application/json');
 
 try {
     // ✅ SAFE absolute include
-    $dbPath = __DIR__ . '/db_connect.php';
+    $dbPath = dirname(__DIR__) . '/db_connect.php';
     if (!file_exists($dbPath)) {
         throw new Exception("db_connect.php not found at $dbPath");
     }
