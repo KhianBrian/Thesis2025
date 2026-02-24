@@ -1,15 +1,38 @@
+const express = require("express");
+const http = require("http");
 const WebSocket = require("ws");
 const pool = require("./db");
 
 const PORT = process.env.PORT || 10000;
 
+const app = express();
+app.use(express.json());
+
+// ==============================
+// BASIC HEALTH CHECK ROUTE
+// ==============================
+app.get("/", (req, res) => {
+  res.send("VitalLink Cloud Backend Running");
+});
+
+// ==============================
+// CREATE HTTP SERVER
+// ==============================
+const server = http.createServer(app);
+
+// ==============================
+// ATTACH WEBSOCKET TO SAME SERVER
+// ==============================
 const wss = new WebSocket.Server({
-  port: PORT,
+  server,
   path: "/ws"
 });
 
-console.log("WebSocket server running on /ws");
+console.log("WebSocket ready on /ws");
 
+// ==============================
+// WEBSOCKET HANDLER
+// ==============================
 wss.on("connection", (ws) => {
   console.log("Client connected");
 
@@ -22,13 +45,11 @@ wss.on("connection", (ws) => {
       return;
     }
 
-    // Ignore heartbeat
     if (data.type === "ping") return;
 
     console.log("Received:", data);
 
     try {
-
       if (!data.patient_id || !data.event_id) {
         throw new Error("Missing patient_id or event_id");
       }
@@ -36,7 +57,7 @@ wss.on("connection", (ws) => {
       const patientId = data.patient_id;
 
       // ==========================
-      // HEART RATE EVENT MIRROR
+      // HEART RATE MIRROR
       // ==========================
       if (data.type === "pr") {
 
@@ -44,7 +65,6 @@ wss.on("connection", (ws) => {
           throw new Error("Missing HR level in payload");
         }
 
-        // Insert parent event
         await pool.query(
           `INSERT INTO event_table (eventid, patientid, eventtype)
            VALUES ($1, $2, 'HeartRate')
@@ -52,7 +72,6 @@ wss.on("connection", (ws) => {
           [data.event_id, patientId]
         );
 
-        // Insert HR details
         await pool.query(
           `INSERT INTO hr_event (eventid, heartrate, heartratelevel)
            VALUES ($1, $2, $3)
@@ -62,15 +81,14 @@ wss.on("connection", (ws) => {
       }
 
       // ==========================
-      // FALL EVENT MIRROR
+      // FALL MIRROR
       // ==========================
       if (data.type === "fall") {
 
         if (!data.height_event_id) {
-          throw new Error("Missing height_event_id for fall");
+          throw new Error("Missing height_event_id");
         }
 
-        // Insert Fall parent event
         await pool.query(
           `INSERT INTO event_table (eventid, patientid, eventtype)
            VALUES ($1, $2, 'Fall')
@@ -85,7 +103,6 @@ wss.on("connection", (ws) => {
           [data.event_id]
         );
 
-        // Insert Height parent event
         await pool.query(
           `INSERT INTO event_table (eventid, patientid, eventtype)
            VALUES ($1, $2, 'Height')
@@ -105,16 +122,22 @@ wss.on("connection", (ws) => {
       console.error("DB Insert Error:", err);
     }
 
-    // Broadcast after DB insert
+    // Broadcast
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(data));
       }
     });
-
   });
 
   ws.on("close", () => {
     console.log("Client disconnected");
   });
+});
+
+// ==============================
+// START SERVER
+// ==============================
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
