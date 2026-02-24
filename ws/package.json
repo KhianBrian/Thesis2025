@@ -6,6 +6,7 @@
     "start": "node websocket_server.js"
   },
   "dependencies": {
+    "express": "^5.2.1",
     "pg": "^8.18.0",
     "ws": "^8.16.0"
   }
