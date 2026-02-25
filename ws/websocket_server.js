@@ -16,6 +16,156 @@ app.get("/", (req, res) => {
 });
 
 // ==============================
+// USER + ADMIN + PATIENT + THRESHOLD SYNC
+// ==============================
+app.post("/sync-user", async (req, res) => {
+  try {
+
+    const syncKey = req.headers["x-sync-key"];
+    if (!syncKey || syncKey !== process.env.SYNC_SECRET) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const { user, admin, patient, threshold } = req.body;
+
+    if (!user) {
+      return res.status(400).json({ error: "Missing user data" });
+    }
+
+    // ==========================
+    // UPSERT user_table
+    // ==========================
+    await pool.query(
+      `INSERT INTO user_table
+       (userid, username, passwordhash, phonenumber, email, role, camerastatus)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (userid)
+       DO UPDATE SET
+         username = EXCLUDED.username,
+         passwordhash = EXCLUDED.passwordhash,
+         phonenumber = EXCLUDED.phonenumber,
+         email = EXCLUDED.email,
+         role = EXCLUDED.role,
+         camerastatus = EXCLUDED.camerastatus`,
+      [
+        user.userid,
+        user.username,
+        user.passwordhash,
+        user.phonenumber,
+        user.email,
+        user.role,
+        user.camerastatus || "Inactive"
+      ]
+    );
+
+    // ==========================
+    // UPSERT admin_table (optional)
+    // ==========================
+    if (admin) {
+      await pool.query(
+        `INSERT INTO admin_table
+         (adminid, userid, fullname)
+         VALUES ($1,$2,$3)
+         ON CONFLICT (adminid)
+         DO UPDATE SET
+           fullname = EXCLUDED.fullname,
+           userid = EXCLUDED.userid`,
+        [
+          admin.adminid,
+          admin.userid,
+          admin.fullname
+        ]
+      );
+    }
+
+    // ==========================
+    // UPSERT patient_table (optional)
+    // ==========================
+    if (patient) {
+      await pool.query(
+        `INSERT INTO patient_table
+         (patientid, userid, adminid, firstname, middlename, lastname,
+          birthdate, age, gender, phonenumber,
+          addressline, city, province, postalcode,
+          emergencycontactname, emergencycontactnumber, emergencyrelationship)
+         VALUES
+         ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+         ON CONFLICT (patientid)
+         DO UPDATE SET
+           firstname = EXCLUDED.firstname,
+           middlename = EXCLUDED.middlename,
+           lastname = EXCLUDED.lastname,
+           birthdate = EXCLUDED.birthdate,
+           age = EXCLUDED.age,
+           gender = EXCLUDED.gender,
+           phonenumber = EXCLUDED.phonenumber,
+           addressline = EXCLUDED.addressline,
+           city = EXCLUDED.city,
+           province = EXCLUDED.province,
+           postalcode = EXCLUDED.postalcode,
+           emergencycontactname = EXCLUDED.emergencycontactname,
+           emergencycontactnumber = EXCLUDED.emergencycontactnumber,
+           emergencyrelationship = EXCLUDED.emergencyrelationship,
+           adminid = EXCLUDED.adminid`,
+        [
+          patient.patientid,
+          patient.userid,
+          patient.adminid || null,
+          patient.firstname,
+          patient.middlename,
+          patient.lastname,
+          patient.birthdate,
+          patient.age,
+          patient.gender,
+          patient.phonenumber,
+          patient.addressline,
+          patient.city,
+          patient.province,
+          patient.postalcode,
+          patient.emergencycontactname,
+          patient.emergencycontactnumber,
+          patient.emergencyrelationship
+        ]
+      );
+    }
+
+    // ==========================
+    // UPSERT hr_threshold_table (optional)
+    // ==========================
+    if (threshold) {
+      await pool.query(
+        `INSERT INTO hr_threshold_table
+         (thresholdid, patientid, restingmin, restingmax,
+          activemin, activemax, criticallevel)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
+         ON CONFLICT (thresholdid)
+         DO UPDATE SET
+           restingmin = EXCLUDED.restingmin,
+           restingmax = EXCLUDED.restingmax,
+           activemin = EXCLUDED.activemin,
+           activemax = EXCLUDED.activemax,
+           criticallevel = EXCLUDED.criticallevel`,
+        [
+          threshold.thresholdid,
+          threshold.patientid,
+          threshold.restingmin,
+          threshold.restingmax,
+          threshold.activemin,
+          threshold.activemax,
+          threshold.criticallevel
+        ]
+      );
+    }
+
+    res.json({ success: true });
+
+  } catch (err) {
+    console.error("SYNC ERROR:", err);
+    res.status(500).json({ error: "Sync failed" });
+  }
+});
+
+// ==============================
 // CREATE HTTP SERVER
 // ==============================
 const server = http.createServer(app);
