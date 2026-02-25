@@ -199,14 +199,53 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
 .spinner{width:40px;height:40px;border:4px solid rgba(26,111,212,.15);border-top:4px solid var(--blue-main);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-@media(max-width:900px){.stat-cards{grid-template-columns:1fr 1fr}}
-@media(max-width:640px){.sidebar{transform:translateX(-100%)}.main-wrap{margin-left:0}.stat-cards{grid-template-columns:1fr}}
+/* ══ HAMBURGER BUTTON (hidden on desktop) ══ */
+.hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;transition:background .2s}
+.hamburger:hover{background:#f0f6ff}
+.hamburger span{display:block;width:22px;height:2px;background:var(--text-dark);border-radius:2px;transition:transform .3s,opacity .3s}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* ══ SIDEBAR OVERLAY (mobile backdrop) ══ */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(2px);z-index:99;opacity:0;transition:opacity .3s}
+.sidebar-overlay.visible{opacity:1}
+
+/* ══ SIDEBAR SLIDE TRANSITION ══ */
+.sidebar{transition:transform .3s cubic-bezier(.4,0,.2,1)}
+
+/* ══ TABLET (≤ 1024px) — sidebar collapses, hamburger appears ══ */
+@media(max-width:1024px){
+    .hamburger{display:flex}
+    .sidebar-overlay{display:block}
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .stat-cards{grid-template-columns:1fr 1fr}
+    .topbar{padding:0 18px}
+    .page-content{padding:18px}
+}
+
+/* ══ PHONE (≤ 600px) — single column cards ══ */
+@media(max-width:600px){
+    .stat-cards{grid-template-columns:1fr}
+    .sidebar{width:min(280px, 85vw)}
+    .page-content{padding:14px}
+    .topbar-title{font-size:.9rem}
+    .chart-wrap{height:180px}
+    .search-modal{padding:18px;max-height:92vh}
+    .filter-row{flex-direction:column;gap:8px}
+    .filter-row input[type=datetime-local],.filter-row select{width:100%}
+}
 </style>
 </head>
 <body>
 
+<!-- ══ SIDEBAR OVERLAY ══ -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <!-- ══ SIDEBAR ══ -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
 <div class="sidebar-bg"></div>
 
 <div class="sidebar-top">
@@ -269,8 +308,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
 <!-- ══ MAIN ══ -->
 <div class="main-wrap">
 <header class="topbar">
-    <div class="topbar-title">
-        Good <?= $greeting ?>, <span><?= htmlspecialchars($firstName1) ?></span> 👋
+    <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" id="hamburgerBtn" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-title">
+            Good <?= $greeting ?>, <span><?= htmlspecialchars($firstName1) ?></span> 👋
+        </div>
     </div>
     <div class="topbar-actions">
         <div class="ws-indicator">
@@ -519,12 +563,41 @@ function logEvent(text, color) {
     if (log.children.length > MAX_LOGS) log.removeChild(log.lastChild);
 }
 
+// ══ SIDEBAR TOGGLE (mobile/tablet) ════════════════════
+const sidebar      = document.getElementById('sidebar');
+const overlay      = document.getElementById('sidebarOverlay');
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+
+function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('visible');
+    hamburgerBtn.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+    hamburgerBtn.classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+hamburgerBtn.addEventListener('click', () => {
+    sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+});
+overlay.addEventListener('click', closeSidebar);
+window.addEventListener('resize', () => { if (window.innerWidth > 1024) closeSidebar(); });
+
 // ══ SEARCH MODAL ═══════════════════════════
 const searchModal = document.getElementById('searchModal');
 document.getElementById('openSearch').addEventListener('click', () => searchModal.classList.remove('hidden'));
 document.getElementById('closeSearch').addEventListener('click', () => searchModal.classList.add('hidden'));
 searchModal.addEventListener('click', e => { if (e.target === searchModal) searchModal.classList.add('hidden'); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') searchModal.classList.add('hidden'); });
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        if (!searchModal.classList.contains('hidden')) searchModal.classList.add('hidden');
+        else closeSidebar();
+    }
+});
 
 document.getElementById('applyFilter').addEventListener('click', async () => {
     const types = [...document.querySelectorAll('.evType:checked')].map(c => c.value);
