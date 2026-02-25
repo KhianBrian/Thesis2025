@@ -54,7 +54,7 @@ if (isset($_GET['t'])) {
                 header("Location: /dashboard/");
                 exit();
             } elseif ($payload && time() > (int)$payload['exp']) {
-                $qrError = "QR code expired (valid 5 min). Scan a fresh one from the RPi dashboard.";
+                $qrError = "QR code expired (valid 2 hrs). Scan a fresh one from the RPi dashboard.";
             } else {
                 $qrError = "Corrupted QR token. Please generate a new one.";
             }

@@ -589,7 +589,18 @@ window.addEventListener('resize', () => { if (window.innerWidth > 1024) closeSid
 
 // ══ SEARCH MODAL ═══════════════════════════
 const searchModal = document.getElementById('searchModal');
-document.getElementById('openSearch').addEventListener('click', () => searchModal.classList.remove('hidden'));
+document.getElementById('openSearch').addEventListener('click', () => {
+    // Pre-fill date range to today if empty, so users don't get blank results
+    const startEl = document.getElementById('startTime');
+    const endEl   = document.getElementById('endTime');
+    if (!startEl.value && !endEl.value) {
+        const now   = new Date();
+        const today = now.toISOString().slice(0, 10);
+        startEl.value = today + 'T00:00';
+        endEl.value   = now.toISOString().slice(0, 16);
+    }
+    searchModal.classList.remove('hidden');
+});
 document.getElementById('closeSearch').addEventListener('click', () => searchModal.classList.add('hidden'));
 searchModal.addEventListener('click', e => { if (e.target === searchModal) searchModal.classList.add('hidden'); });
 document.addEventListener('keydown', e => {

@@ -7,6 +7,10 @@ header('Content-Type: application/json');
 ini_set('display_errors', 0);
 require_once dirname(__DIR__) . '/db_connect.php';
 try {
+    // ── Session: get patientid so we only return THIS patient's events ──
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    $sessionPid = $_SESSION['patient_id'] ?? null;
+
     $types = $_GET['types'] ?? ['HeartRate','Fall'];
     if (!is_array($types)) $types = explode(',', $types);
     $allowed = ['HeartRate','Fall','Height'];
@@ -17,6 +21,11 @@ try {
     $end   = $_GET['end']   ?? null;
     $limit = min((int)($_GET['limit'] ?? 100), 500);
 
+    // Fix datetime-local format: browser sends "2026-02-25T03:53:39"
+    // PostgreSQL needs "2026-02-25 03:53:39" — replace T with space
+    if ($start) $start = str_replace('T', ' ', $start);
+    if ($end)   $end   = str_replace('T', ' ', $end);
+
     $phs = []; $params = []; $idx = 1;
     foreach ($types as $t) { $phs[] = '$'.$idx++; $params[] = $t; }
 
@@ -26,6 +35,12 @@ try {
         LEFT JOIN fall_event   f  ON f.eventid =e.eventid AND e.eventtype='Fall'
         LEFT JOIN height_event ht ON ht.eventid=e.eventid AND e.eventtype='Height'
         WHERE e.eventtype IN (".implode(',',$phs).")";
+
+    // Always filter by patient so users only see their own data
+    if ($sessionPid) {
+        $sql .= " AND e.patientid = $".$idx++;
+        $params[] = (int)$sessionPid;
+    }
 
     if ($start) { $sql .= " AND e.eventtime >= $".$idx++; $params[] = $start; }
     if ($end)   { $sql .= " AND e.eventtime <= $".$idx++; $params[] = $end; }
