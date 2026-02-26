@@ -591,14 +591,24 @@ window.addEventListener('resize', () => { if (window.innerWidth > 1024) closeSid
 // ══ SEARCH MODAL ═══════════════════════════
 const searchModal = document.getElementById('searchModal');
 document.getElementById('openSearch').addEventListener('click', () => {
-    // Pre-fill date range to today if empty, so users don't get blank results
+    // Pre-fill with current local time range (today 00:00 to now)
+    // Uses local browser time so it matches PST timestamps in the database
     const startEl = document.getElementById('startTime');
     const endEl   = document.getElementById('endTime');
     if (!startEl.value && !endEl.value) {
         const now   = new Date();
-        const today = now.toISOString().slice(0, 10);
-        startEl.value = today + 'T00:00';
-        endEl.value   = now.toISOString().slice(0, 16);
+        // Format as local time (not UTC) for datetime-local input
+        const pad   = n => String(n).padStart(2, '0');
+        const localStr = now.getFullYear() + '-' +
+                         pad(now.getMonth()+1) + '-' +
+                         pad(now.getDate()) + 'T' +
+                         pad(now.getHours()) + ':' +
+                         pad(now.getMinutes());
+        const todayStr = now.getFullYear() + '-' +
+                         pad(now.getMonth()+1) + '-' +
+                         pad(now.getDate()) + 'T00:00';
+        startEl.value = todayStr;
+        endEl.value   = localStr;
     }
     searchModal.classList.remove('hidden');
 });
@@ -643,7 +653,7 @@ document.getElementById('applyFilter').addEventListener('click', async () => {
         if (countEl) countEl.textContent = json.data.length + ' result' + (json.data.length !== 1 ? 's' : '');
         json.data.forEach(row => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${new Date(row.time + 'Z').toLocaleString()}</td><td>${row.type}</td><td>${row.value??'--'}</td><td>${row.height??'--'}</td>`;
+            tr.innerHTML = `<td>${row.time}</td><td>${row.type}</td><td>${row.value??'--'}</td><td>${row.height??'--'}</td>`;
             document.getElementById('resultsTbody').appendChild(tr);
         });
     } catch(err) {
