@@ -29,7 +29,21 @@ try {
     $phs = []; $params = []; $idx = 1;
     foreach ($types as $t) { $phs[] = '$'.$idx++; $params[] = $t; }
 
-    $sql = "SELECT e.eventid,e.eventtype,e.eventtime,hr.heartrate,f.severity,ht.heightcm
+    // For Fall events, find the matching Height event that shares the same timestamp
+    // (recorded within 1 second of the fall) to get the fall height.
+    // Height events are stored as separate rows so we subquery for the closest one.
+    $sql = "SELECT e.eventid, e.eventtype, e.eventtime,
+                   hr.heartrate, f.severity,
+                   ht.heightcm,
+                   (SELECT ht2.heightcm
+                    FROM event_table e2
+                    JOIN height_event ht2 ON ht2.eventid = e2.eventid
+                    WHERE e2.patientid = e.patientid
+                      AND e2.eventtype = 'Height'
+                      AND ABS(EXTRACT(EPOCH FROM (e2.eventtime - e.eventtime))) <= 2
+                    ORDER BY ABS(EXTRACT(EPOCH FROM (e2.eventtime - e.eventtime)))
+                    LIMIT 1
+                   ) AS fall_heightcm
         FROM event_table e
         LEFT JOIN hr_event     hr ON hr.eventid=e.eventid AND e.eventtype='HeartRate'
         LEFT JOIN fall_event   f  ON f.eventid =e.eventid AND e.eventtype='Fall'
@@ -52,10 +66,20 @@ try {
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $events = array_map(function($row) {
+        // For Fall rows: use the subqueried fall_heightcm (linked Height event)
+        // For Height rows: use heightcm directly
+        // For HeartRate rows: height is N/A
+        $heightCm = null;
+        if ($row['eventtype'] === 'Fall') {
+            $heightCm = $row['fall_heightcm'] ?? null;
+        } elseif ($row['eventtype'] === 'Height') {
+            $heightCm = $row['heightcm'] ?? null;
+        }
+
         switch ($row['eventtype']) {
             case 'HeartRate': $v = ($row['heartrate']??null) ? $row['heartrate'].' BPM' : '--'; break;
             case 'Fall':      $v = $row['severity'] ?? 'Detected'; break;
-            case 'Height':    $v = ($row['heightcm']??null) ? round($row['heightcm'],1).' cm' : '--'; break;
+            case 'Height':    $v = $heightCm ? round($heightCm,1).' cm' : '--'; break;
             default:          $v = '--';
         }
         return [
@@ -63,7 +87,7 @@ try {
             'type'     => $row['eventtype'],
             'time'     => $row['eventtime'],
             'value'    => $v,
-            'height'   => ($row['heightcm']??null) ? round($row['heightcm']/100,2).' m' : 'N/A',
+            'height'   => $heightCm ? round($heightCm/100,2).' m' : 'N/A',
         ];
     }, $rows);
 
