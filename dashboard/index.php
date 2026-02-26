@@ -418,6 +418,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
             </div>
             <button class="apply-btn" id="applyFilter">Search</button>
         </div>
+        <div id="resultCount" style="font-size:.8rem;color:var(--text-light);margin-bottom:8px;text-align:right;min-height:1.2em"></div>
         <div id="searchLoading" style="display:none;text-align:center;padding:28px">
             <div class="spinner"></div>
             <p style="color:var(--text-light);font-size:.84rem">Fetching events…</p>
@@ -615,8 +616,12 @@ document.getElementById('applyFilter').addEventListener('click', async () => {
     if (!types.length) { alert('Select at least one event type.'); return; }
     const params = new URLSearchParams();
     types.forEach(t => params.append('types[]', t));
-    params.set('start', document.getElementById('startTime').value);
-    params.set('end',   document.getElementById('endTime').value);
+
+    // Only send date params if actually filled — blank means search ALL dates
+    const startVal = document.getElementById('startTime').value;
+    const endVal   = document.getElementById('endTime').value;
+    if (startVal) params.set('start', startVal);
+    if (endVal)   params.set('end',   endVal);
     params.set('limit', document.getElementById('limitSel').value);
 
     document.getElementById('searchLoading').style.display = 'block';
@@ -627,17 +632,24 @@ document.getElementById('applyFilter').addEventListener('click', async () => {
         const json = await res.json();
         document.getElementById('searchLoading').style.display = 'none';
         if (!json.success || !json.data?.length) {
-            document.getElementById('resultsTbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:22px">No events found.</td></tr>';
+            document.getElementById('resultsTbody').innerHTML =
+                '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:22px">' +
+                ((!startVal && !endVal) ? 'No events found in database.' : 'No events found for the selected date range.') +
+                '</td></tr>';
             return;
         }
+        // Show result count above table
+        const countEl = document.getElementById('resultCount');
+        if (countEl) countEl.textContent = json.data.length + ' result' + (json.data.length !== 1 ? 's' : '');
         json.data.forEach(row => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${new Date(row.time).toLocaleString()}</td><td>${row.type}</td><td>${row.value??'--'}</td><td>${row.height??'--'}</td>`;
+            tr.innerHTML = `<td>${new Date(row.time + 'Z').toLocaleString()}</td><td>${row.type}</td><td>${row.value??'--'}</td><td>${row.height??'--'}</td>`;
             document.getElementById('resultsTbody').appendChild(tr);
         });
-    } catch {
+    } catch(err) {
         document.getElementById('searchLoading').style.display = 'none';
         document.getElementById('resultsTbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--danger)">Failed to load. Check server.</td></tr>';
+        console.error('Search error:', err);
     }
 });
 </script>
