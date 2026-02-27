@@ -166,6 +166,65 @@ app.post("/sync-user", async (req, res) => {
 });
 
 // ==============================
+// SYNC-EVENT: HTTP endpoint for receiver.py to push events with PST timestamp
+// ==============================
+app.post("/sync-event", async (req, res) => {
+  try {
+    const syncKey = req.headers["x-sync-key"];
+    if (!syncKey || syncKey !== process.env.SYNC_SECRET) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const { eventtype, patientid, eventid, eventtime,
+            heartrate, heartratelevel,
+            severity, heightcm } = req.body;
+
+    if (!eventtype || !patientid || !eventid) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const ts = eventtime || new Date().toISOString();
+
+    // Upsert into event_table with correct PST timestamp
+    await pool.query(
+      `INSERT INTO event_table (eventid, patientid, eventtype, eventtime)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (eventid) DO UPDATE SET eventtime = EXCLUDED.eventtime`,
+      [eventid, patientid, eventtype, ts]
+    );
+
+    // Insert into child table based on type
+    if (eventtype === "HeartRate" && heartrate != null) {
+      await pool.query(
+        `INSERT INTO hr_event (eventid, heartrate, heartratelevel)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (eventid) DO NOTHING`,
+        [eventid, heartrate, heartratelevel || "Normal"]
+      );
+    } else if (eventtype === "Fall") {
+      await pool.query(
+        `INSERT INTO fall_event (eventid, severity)
+         VALUES ($1, $2)
+         ON CONFLICT (eventid) DO NOTHING`,
+        [eventid, severity || "Moderate"]
+      );
+    } else if (eventtype === "Height" && heightcm != null) {
+      await pool.query(
+        `INSERT INTO height_event (eventid, heightcm)
+         VALUES ($1, $2)
+         ON CONFLICT (eventid) DO NOTHING`,
+        [eventid, heightcm]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("SYNC-EVENT ERROR:", err);
+    res.status(500).json({ error: "Sync event failed", detail: err.message });
+  }
+});
+
+// ==============================
 // CREATE HTTP SERVER
 // ==============================
 const server = http.createServer(app);
@@ -215,11 +274,12 @@ wss.on("connection", (ws) => {
           throw new Error("Missing HR level in payload");
         }
 
+        const hrTime = data.timestamp || new Date().toISOString();
         await pool.query(
-          `INSERT INTO event_table (eventid, patientid, eventtype)
-           VALUES ($1, $2, 'HeartRate')
+          `INSERT INTO event_table (eventid, patientid, eventtype, eventtime)
+           VALUES ($1, $2, 'HeartRate', $3)
            ON CONFLICT (eventid) DO NOTHING`,
-          [data.event_id, patientId]
+          [data.event_id, patientId, hrTime]
         );
 
         await pool.query(
@@ -239,11 +299,12 @@ wss.on("connection", (ws) => {
           throw new Error("Missing height_event_id");
         }
 
+        const fallTime = data.timestamp || new Date().toISOString();
         await pool.query(
-          `INSERT INTO event_table (eventid, patientid, eventtype)
-           VALUES ($1, $2, 'Fall')
+          `INSERT INTO event_table (eventid, patientid, eventtype, eventtime)
+           VALUES ($1, $2, 'Fall', $3)
            ON CONFLICT (eventid) DO NOTHING`,
-          [data.event_id, patientId]
+          [data.event_id, patientId, fallTime]
         );
 
         await pool.query(
@@ -254,10 +315,10 @@ wss.on("connection", (ws) => {
         );
 
         await pool.query(
-          `INSERT INTO event_table (eventid, patientid, eventtype)
-           VALUES ($1, $2, 'Height')
+          `INSERT INTO event_table (eventid, patientid, eventtype, eventtime)
+           VALUES ($1, $2, 'Height', $3)
            ON CONFLICT (eventid) DO NOTHING`,
-          [data.height_event_id, patientId]
+          [data.height_event_id, patientId, fallTime]
         );
 
         await pool.query(
