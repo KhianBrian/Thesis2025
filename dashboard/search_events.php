@@ -4,10 +4,10 @@
  * PostgreSQL stores columns lowercase. Uses positional $1,$2 params.
  */
 header('Content-Type: application/json');
-ini_set('display_errors', 0);
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 require_once dirname(__DIR__) . '/db_connect.php';
 try {
-    // ── Session: get patientid so we only return THIS patient's events ──
     if (session_status() === PHP_SESSION_NONE) session_start();
     $sessionPid = $_SESSION['patient_id'] ?? null;
 
@@ -21,18 +21,13 @@ try {
     $end   = $_GET['end']   ?? null;
     $limit = min((int)($_GET['limit'] ?? 100), 500);
 
-    // Fix datetime-local format: browser sends "2026-02-25T03:53:39"
-    // PostgreSQL needs "2026-02-25 03:53:39" — replace T with space
     if ($start) $start = str_replace('T', ' ', $start);
     if ($end)   $end   = str_replace('T', ' ', $end);
 
     $phs = []; $params = []; $idx = 1;
     foreach ($types as $t) { $phs[] = '$'.$idx++; $params[] = $t; }
 
-    // For Fall events, find the matching Height event that shares the same timestamp
-    // (recorded within 1 second of the fall) to get the fall height.
-    // Height events are stored as separate rows so we subquery for the closest one.
-    $sql = "SELECT e.eventid, e.eventtype, e.eventtime,
+    $sql = "SELECT e.eventid, e.eventtype, e.eventtime, e.patientid,
                    hr.heartrate, f.severity,
                    ht.heightcm,
                    (SELECT ht2.heightcm
@@ -50,27 +45,8 @@ try {
         LEFT JOIN height_event ht ON ht.eventid=e.eventid AND e.eventtype='Height'
         WHERE e.eventtype IN (".implode(',',$phs).")";
 
-    // DEBUG: check what patientids exist in event_table
-    $debugStmt = $pdo->query("SELECT DISTINCT patientid FROM event_table ORDER BY patientid");
-    $dbPids = $debugStmt->fetchAll(PDO::FETCH_COLUMN);
-
-    // If session patientid doesn't match any in DB, return debug info
-    if ($sessionPid && !in_array((int)$sessionPid, array_map('intval', $dbPids))) {
-        echo json_encode([
-            'success' => false,
-            'debug'   => true,
-            'error'   => 'PatientID mismatch',
-            'session_patient_id' => $sessionPid,
-            'db_patient_ids'     => $dbPids,
-        ]);
-        exit;
-    }
-
-    // Always filter by patient so users only see their own data
-    if ($sessionPid) {
-        $sql .= " AND e.patientid = $".$idx++;
-        $params[] = (int)$sessionPid;
-    }
+    // TEMPORARILY REMOVED patientid filter to diagnose issue
+    // session_patient_id is: $sessionPid
 
     if ($start) { $sql .= " AND e.eventtime >= $".$idx++; $params[] = $start; }
     if ($end)   { $sql .= " AND e.eventtime <= $".$idx++; $params[] = $end; }
@@ -82,16 +58,12 @@ try {
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $events = array_map(function($row) {
-        // For Fall rows: use the subqueried fall_heightcm (linked Height event)
-        // For Height rows: use heightcm directly
-        // For HeartRate rows: height is N/A
         $heightCm = null;
         if ($row['eventtype'] === 'Fall') {
             $heightCm = $row['fall_heightcm'] ?? null;
         } elseif ($row['eventtype'] === 'Height') {
             $heightCm = $row['heightcm'] ?? null;
         }
-
         switch ($row['eventtype']) {
             case 'HeartRate': $v = ($row['heartrate']??null) ? $row['heartrate'].' BPM' : '--'; break;
             case 'Fall':      $v = $row['severity'] ?? 'Detected'; break;
@@ -99,15 +71,21 @@ try {
             default:          $v = '--';
         }
         return [
-            'event_id' => $row['eventid'],
-            'type'     => $row['eventtype'],
-            'time'     => $row['eventtime'],
-            'value'    => $v,
-            'height'   => $heightCm ? round($heightCm/100,2).' m' : 'N/A',
+            'event_id'   => $row['eventid'],
+            'type'       => $row['eventtype'],
+            'time'       => $row['eventtime'],
+            'value'      => $v,
+            'height'     => $heightCm ? round($heightCm/100,2).' m' : 'N/A',
+            '_patientid' => $row['patientid'],  // debug: show patientid in results
         ];
     }, $rows);
 
-    echo json_encode(['success'=>true,'data'=>$events]);
+    echo json_encode([
+        'success'            => true,
+        'data'               => $events,
+        'debug_session_pid'  => $sessionPid,   // what session thinks patientid is
+        'debug_row_count'    => count($rows),  // how many rows found
+    ]);
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['success'=>false,'error'=>$e->getMessage()]);
