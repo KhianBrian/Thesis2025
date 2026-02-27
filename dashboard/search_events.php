@@ -50,6 +50,22 @@ try {
         LEFT JOIN height_event ht ON ht.eventid=e.eventid AND e.eventtype='Height'
         WHERE e.eventtype IN (".implode(',',$phs).")";
 
+    // DEBUG: check what patientids exist in event_table
+    $debugStmt = $pdo->query("SELECT DISTINCT patientid FROM event_table ORDER BY patientid");
+    $dbPids = $debugStmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // If session patientid doesn't match any in DB, return debug info
+    if ($sessionPid && !in_array((int)$sessionPid, array_map('intval', $dbPids))) {
+        echo json_encode([
+            'success' => false,
+            'debug'   => true,
+            'error'   => 'PatientID mismatch',
+            'session_patient_id' => $sessionPid,
+            'db_patient_ids'     => $dbPids,
+        ]);
+        exit;
+    }
+
     // Always filter by patient so users only see their own data
     if ($sessionPid) {
         $sql .= " AND e.patientid = $".$idx++;
