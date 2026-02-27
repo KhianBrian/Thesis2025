@@ -229,25 +229,33 @@ function renderResults(rows) {
   }
 
   rows.forEach(row => {
+    const time = row.eventtime
+      ? new Date(row.eventtime).toLocaleString()
+      : "-";
+
+    const event = row.eventtype || "-";
+
     let value = "-";
     let height = "-";
 
     if (row.eventtype === "HeartRate") {
-      value = row.heartrate ? row.heartrate + " BPM" : "-";
+      value = row.heartrate !== null
+        ? row.heartrate + " BPM"
+        : "-";
     }
 
     if (row.eventtype === "Fall") {
       value = "FALL";
     }
 
-    if (row.heightcm) {
+    if (row.heightcm !== null) {
       height = row.heightcm + " cm";
     }
 
     tbody.insertAdjacentHTML("beforeend", `
       <tr>
-        <td>${new Date(row.eventtime).toLocaleString()}</td>
-        <td>${row.eventtype}</td>
+        <td>${time}</td>
+        <td>${event}</td>
         <td>${value}</td>
         <td>${height}</td>
       </tr>
