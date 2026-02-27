@@ -220,6 +220,7 @@ if (applyFilter) {
 // RENDER RESULTS
 // ===============================
 function renderResults(rows) {
+  console.log("RENDER INPUT:", rows);
   const tbody = document.querySelector("#resultsTable tbody");
   tbody.innerHTML = "";
 

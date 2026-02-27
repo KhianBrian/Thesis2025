@@ -652,10 +652,32 @@ document.getElementById('applyFilter').addEventListener('click', async () => {
         const countEl = document.getElementById('resultCount');
         if (countEl) countEl.textContent = json.data.length + ' result' + (json.data.length !== 1 ? 's' : '');
         json.data.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${row.time}</td><td>${row.type}</td><td>${row.value??'--'}</td><td>${row.height??'--'}</td>`;
-            document.getElementById('resultsTbody').appendChild(tr);
-        });
+
+    let value = '--';
+    let height = '--';
+
+    if (row.eventtype === 'HeartRate') {
+        value = row.heartrate !== null ? row.heartrate + ' BPM' : '--';
+    }
+
+    if (row.eventtype === 'Fall') {
+        value = 'FALL';
+    }
+
+    if (row.heightcm !== null) {
+        height = row.heightcm + ' cm';
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td>${new Date(row.eventtime).toLocaleString()}</td>
+        <td>${row.eventtype}</td>
+        <td>${value}</td>
+        <td>${height}</td>
+    `;
+
+    document.getElementById('resultsTbody').appendChild(tr);
+});
     } catch(err) {
         document.getElementById('searchLoading').style.display = 'none';
         document.getElementById('resultsTbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--danger)">Failed to load. Check server.</td></tr>';
