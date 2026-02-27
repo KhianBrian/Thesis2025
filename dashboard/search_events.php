@@ -8,10 +8,27 @@ require_once dirname(__DIR__) . '/db_connect.php';
 try {
     if (session_status() === PHP_SESSION_NONE) session_start();
     $sessionPid = $_SESSION['patient_id'] ?? null;
+    $sessionUid = $_SESSION['user_id'] ?? null;
 
-    // If no patient in session, return empty — user needs to scan a fresh QR
+    // If patient_id missing but user_id exists, look it up live from DB
+    if (!$sessionPid && $sessionUid) {
+        $fallback = $pdo->prepare("SELECT patientid FROM patient_table WHERE userid = ? LIMIT 1");
+        $fallback->execute([$sessionUid]);
+        $fbRow = $fallback->fetch();
+        if ($fbRow) {
+            $sessionPid = $fbRow['patientid'];
+            $_SESSION['patient_id'] = $sessionPid;
+        }
+    }
+
+    // If still no patient, return debug info
     if (!$sessionPid) {
-        echo json_encode(['success'=>true,'data'=>[],'message'=>'No patient session. Please scan a fresh QR code.']);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'No patient session',
+            'debug_session_uid' => $sessionUid,
+            'debug_session_keys' => array_keys($_SESSION),
+        ]);
         exit;
     }
 
