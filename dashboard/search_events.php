@@ -7,28 +7,39 @@ try {
 
     require_once __DIR__ . '/../db_connect.php';
 
-    $input = file_get_contents("php://input");
-    $data  = json_decode($input, true);
+    // =============================
+    // 1️⃣ Accept JSON or GET
+    // =============================
 
-    if (!$data) {
-        echo json_encode(["success" => true, "data" => []]);
-        exit;
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    if ($data) {
+        $types = $data['types'] ?? [];
+        $start = $data['start'] ?? null;
+        $end   = $data['end'] ?? null;
+    } else {
+        // fallback to GET
+        $types = $_GET['types'] ?? [];
+        $start = $_GET['start'] ?? null;
+        $end   = $_GET['end'] ?? null;
+
+        if (!is_array($types)) {
+            $types = [$types];
+        }
     }
-
-    $types = $data['types'] ?? [];
-    $start = $data['start'] ?? null;
-    $end   = $data['end'] ?? null;
 
     if (empty($types) || !$start || !$end) {
         echo json_encode(["success" => true, "data" => []]);
         exit;
     }
 
-    // Fix datetime
     $start = date("Y-m-d H:i:s", strtotime($start));
     $end   = date("Y-m-d H:i:s", strtotime($end));
 
-    // PostgreSQL ANY() array binding
+    // =============================
+    // 2️⃣ PostgreSQL ANY array
+    // =============================
+
     $sql = "
         SELECT
             e.eventid,
@@ -46,7 +57,6 @@ try {
 
     $stmt = $pdo->prepare($sql);
 
-    // Convert PHP array to PostgreSQL array literal
     $pgArray = '{' . implode(',', $types) . '}';
 
     $stmt->bindParam(':types', $pgArray);
@@ -65,6 +75,7 @@ try {
     exit;
 
 } catch (Throwable $e) {
+
     echo json_encode([
         "success" => false,
         "error" => $e->getMessage()
