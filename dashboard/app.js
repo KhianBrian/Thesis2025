@@ -219,23 +219,29 @@ if (applyFilter) {
 // ===============================
 // RENDER RESULTS
 // ===============================
-function renderResults(data) {
+function renderResults(rows) {
   const tbody = document.querySelector("#resultsTable tbody");
   tbody.innerHTML = "";
 
-  if (data.length === 0) {
+  if (!rows || rows.length === 0) {
     tbody.innerHTML = `<tr><td colspan="4">No results found.</td></tr>`;
     return;
   }
 
-  data.forEach(row => {
+  rows.forEach(row => {
     let value = "-";
     let height = "-";
 
-    if (row.eventtype === "HeartRate") value = row.heartrate + " BPM";
+    if (row.eventtype === "HeartRate") {
+      value = row.heartrate ? row.heartrate + " BPM" : "-";
+    }
+
     if (row.eventtype === "Fall") {
       value = "FALL";
-      height = row.estimatedheight ?? "-";
+    }
+
+    if (row.heightcm) {
+      height = row.heightcm + " cm";
     }
 
     tbody.insertAdjacentHTML("beforeend", `
