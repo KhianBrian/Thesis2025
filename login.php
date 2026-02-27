@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "This account is not registered as a " . ucfirst($role) . ".";
         } else {
             // Look up patient record
-            $ps = $pdo->prepare("SELECT patientid, firstname, lastname FROM patient_table WHERE userid = ? LIMIT 1");
+            $ps = $pdo->prepare("SELECT patientid, firstname, lastname FROM patient_table WHERE userid = $1 LIMIT 1");
             $ps->execute([$user['userid']]);
             $pat = $ps->fetch();
 
