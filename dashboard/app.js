@@ -202,17 +202,16 @@ if (applyFilter) {
         end: document.getElementById("endTime").value
       })
     })
-      .then(res => res.text())
-      .then(text => {
-        const data = text ? JSON.parse(text) : [];
-        renderResults(data);
-        if (loadingOverlay) loadingOverlay.classList.add("hidden");
-      })
-      .catch(err => {
-        console.error("Search error:", err);
-        if (loadingOverlay) loadingOverlay.classList.add("hidden");
-        alert("Failed to fetch data.");
-      });
+    .then(res => res.json())
+    .then(response => {
+      renderResults(response.data || []);
+      if (loadingOverlay) loadingOverlay.classList.add("hidden");
+    })
+    .catch(err => {
+      console.error("Search error:", err);
+      if (loadingOverlay) loadingOverlay.classList.add("hidden");
+      alert("Failed to fetch data.");
+    });
 
   });
 }
