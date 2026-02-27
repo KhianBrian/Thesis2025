@@ -1,7 +1,6 @@
 <?php
 /**
  * dashboard/search_events.php — Online (Render / PostgreSQL)
- * PostgreSQL stores columns lowercase. Uses positional $1,$2 params.
  */
 header('Content-Type: application/json');
 ini_set('display_errors', 1);
@@ -10,6 +9,24 @@ require_once dirname(__DIR__) . '/db_connect.php';
 try {
     if (session_status() === PHP_SESSION_NONE) session_start();
     $sessionPid = $_SESSION['patient_id'] ?? null;
+
+    // ── FULL DIAGNOSTIC ─────────────────────────────────────────
+    // Count ALL rows in event_table regardless of anything
+    $total = $pdo->query("SELECT COUNT(*) FROM event_table")->fetchColumn();
+    $pids  = $pdo->query("SELECT DISTINCT patientid FROM event_table ORDER BY patientid")->fetchAll(PDO::FETCH_COLUMN);
+    $latest = $pdo->query("SELECT eventid, patientid, eventtype, eventtime FROM event_table ORDER BY eventtime DESC LIMIT 3")->fetchAll(PDO::FETCH_ASSOC);
+
+    // If zero rows — DB is empty or wrong DB
+    if ($total == 0) {
+        echo json_encode([
+            'success' => false,
+            'error'   => 'event_table is completely empty in this database',
+            'db_host' => getenv('DB_HOST'),
+            'db_name' => getenv('DB_NAME'),
+            'session_pid' => $sessionPid,
+        ]);
+        exit;
+    }
 
     $types = $_GET['types'] ?? ['HeartRate','Fall'];
     if (!is_array($types)) $types = explode(',', $types);
@@ -45,9 +62,6 @@ try {
         LEFT JOIN height_event ht ON ht.eventid=e.eventid AND e.eventtype='Height'
         WHERE e.eventtype IN (".implode(',',$phs).")";
 
-    // TEMPORARILY REMOVED patientid filter to diagnose issue
-    // session_patient_id is: $sessionPid
-
     if ($start) { $sql .= " AND e.eventtime >= $".$idx++; $params[] = $start; }
     if ($end)   { $sql .= " AND e.eventtime <= $".$idx++; $params[] = $end; }
     $sql .= " ORDER BY e.eventtime DESC LIMIT $".$idx;
@@ -76,17 +90,23 @@ try {
             'time'       => $row['eventtime'],
             'value'      => $v,
             'height'     => $heightCm ? round($heightCm/100,2).' m' : 'N/A',
-            '_patientid' => $row['patientid'],  // debug: show patientid in results
         ];
     }, $rows);
 
     echo json_encode([
-        'success'            => true,
-        'data'               => $events,
-        'debug_session_pid'  => $sessionPid,   // what session thinks patientid is
-        'debug_row_count'    => count($rows),  // how many rows found
+        'success'           => true,
+        'data'              => $events,
+        'debug_total_rows'  => $total,
+        'debug_pids_in_db'  => $pids,
+        'debug_session_pid' => $sessionPid,
+        'debug_latest_3'    => $latest,
     ]);
 } catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['success'=>false,'error'=>$e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'error'   => $e->getMessage(),
+        'db_host' => getenv('DB_HOST'),
+        'db_name' => getenv('DB_NAME'),
+    ]);
 }
