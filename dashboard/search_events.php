@@ -3,28 +3,15 @@
  * dashboard/search_events.php — Online (Render / PostgreSQL)
  */
 header('Content-Type: application/json');
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+ini_set('display_errors', 0);
 require_once dirname(__DIR__) . '/db_connect.php';
 try {
     if (session_status() === PHP_SESSION_NONE) session_start();
     $sessionPid = $_SESSION['patient_id'] ?? null;
 
-    // ── FULL DIAGNOSTIC ─────────────────────────────────────────
-    // Count ALL rows in event_table regardless of anything
-    $total = $pdo->query("SELECT COUNT(*) FROM event_table")->fetchColumn();
-    $pids  = $pdo->query("SELECT DISTINCT patientid FROM event_table ORDER BY patientid")->fetchAll(PDO::FETCH_COLUMN);
-    $latest = $pdo->query("SELECT eventid, patientid, eventtype, eventtime FROM event_table ORDER BY eventtime DESC LIMIT 3")->fetchAll(PDO::FETCH_ASSOC);
-
-    // If zero rows — DB is empty or wrong DB
-    if ($total == 0) {
-        echo json_encode([
-            'success' => false,
-            'error'   => 'event_table is completely empty in this database',
-            'db_host' => getenv('DB_HOST'),
-            'db_name' => getenv('DB_NAME'),
-            'session_pid' => $sessionPid,
-        ]);
+    // If no patient in session, return empty — user needs to scan a fresh QR
+    if (!$sessionPid) {
+        echo json_encode(['success'=>true,'data'=>[],'message'=>'No patient session. Please scan a fresh QR code.']);
         exit;
     }
 
@@ -44,7 +31,7 @@ try {
     $phs = []; $params = []; $idx = 1;
     foreach ($types as $t) { $phs[] = '$'.$idx++; $params[] = $t; }
 
-    $sql = "SELECT e.eventid, e.eventtype, e.eventtime, e.patientid,
+    $sql = "SELECT e.eventid, e.eventtype, e.eventtime,
                    hr.heartrate, f.severity,
                    ht.heightcm,
                    (SELECT ht2.heightcm
@@ -60,7 +47,9 @@ try {
         LEFT JOIN hr_event     hr ON hr.eventid=e.eventid AND e.eventtype='HeartRate'
         LEFT JOIN fall_event   f  ON f.eventid =e.eventid AND e.eventtype='Fall'
         LEFT JOIN height_event ht ON ht.eventid=e.eventid AND e.eventtype='Height'
-        WHERE e.eventtype IN (".implode(',',$phs).")";
+        WHERE e.eventtype IN (".implode(',',$phs).")
+          AND e.patientid = $".$idx++;
+    $params[] = (int)$sessionPid;
 
     if ($start) { $sql .= " AND e.eventtime >= $".$idx++; $params[] = $start; }
     if ($end)   { $sql .= " AND e.eventtime <= $".$idx++; $params[] = $end; }
@@ -85,28 +74,16 @@ try {
             default:          $v = '--';
         }
         return [
-            'event_id'   => $row['eventid'],
-            'type'       => $row['eventtype'],
-            'time'       => $row['eventtime'],
-            'value'      => $v,
-            'height'     => $heightCm ? round($heightCm/100,2).' m' : 'N/A',
+            'event_id' => $row['eventid'],
+            'type'     => $row['eventtype'],
+            'time'     => $row['eventtime'],
+            'value'    => $v,
+            'height'   => $heightCm ? round($heightCm/100,2).' m' : 'N/A',
         ];
     }, $rows);
 
-    echo json_encode([
-        'success'           => true,
-        'data'              => $events,
-        'debug_total_rows'  => $total,
-        'debug_pids_in_db'  => $pids,
-        'debug_session_pid' => $sessionPid,
-        'debug_latest_3'    => $latest,
-    ]);
+    echo json_encode(['success'=>true,'data'=>$events]);
 } catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error'   => $e->getMessage(),
-        'db_host' => getenv('DB_HOST'),
-        'db_name' => getenv('DB_NAME'),
-    ]);
+    echo json_encode(['success'=>false,'error'=>$e->getMessage()]);
 }
