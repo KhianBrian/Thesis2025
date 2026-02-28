@@ -133,6 +133,41 @@ tr:hover td{background:#fafcff}
 .meta-item span{font-size:0.82rem;color:#1a1a2e;font-weight:500}
 .form-inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .form-inline input,.form-inline select{border:1.5px solid #e0e9f5;border-radius:8px;padding:7px 10px;font-size:0.81rem;outline:none;font-family:inherit;background:#fafcff}
+
+/* ══ MOBILE ══ */
+@media(max-width:768px){
+    .topbar-inner{padding:0 16px;gap:6px}
+    .topbar-brand h1{font-size:.9rem}
+    .topbar-brand span{font-size:.72rem}
+    .topbar-links{gap:6px}
+    .topbar a{padding:6px 12px;font-size:.75rem}
+    .tabs{padding:0 12px}
+    .tab{padding:12px 14px;font-size:.78rem}
+    .container{padding:0 14px;margin:16px auto}
+    .section-body{padding:14px;overflow-x:auto}
+    .section-header{padding:12px 16px}
+    /* make tables scroll horizontally */
+    table{min-width:480px;font-size:.78rem}
+    th,td{padding:7px 9px}
+    .patient-meta{grid-template-columns:1fr 1fr}
+    .patient-card{padding:12px 14px}
+    .notice{font-size:.78rem;padding:10px 13px}
+    .form-inline{flex-wrap:wrap}
+    .form-inline select{flex:1;min-width:120px}
+}
+
+@media(max-width:480px){
+    .topbar-inner{flex-direction:column;align-items:flex-start;padding:10px 14px}
+    .topbar-brand{padding:8px 0 4px}
+    .topbar-links{padding-bottom:10px}
+    .tabs{gap:0}
+    .tab{padding:10px 12px;font-size:.75rem}
+    .patient-meta{grid-template-columns:1fr}
+    /* Caregiver table — allow horizontal scroll on the wrapper */
+    .section-body{-webkit-overflow-scrolling:touch}
+    table{min-width:420px}
+    .btn{padding:6px 10px;font-size:.75rem}
+}
 </style>
 </head>
 <body>

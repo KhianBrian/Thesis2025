@@ -276,6 +276,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
     .search-modal{padding:18px;max-height:92vh}
     .filter-row{flex-direction:column;gap:8px}
     .filter-row input[type=datetime-local],.filter-row select{width:100%}
+    /* search modal buttons full-width on phone */
+    .apply-btn{width:100%;justify-content:center}
+    /* settings grid already 1-col via existing rule, but ensure inputs fill */
+    .sfield-input{font-size:.85rem}
+    /* threshold grid 2-col on phone (5 fields: 2+2+1) */
+    .thresh-grid{grid-template-columns:1fr 1fr}
+    /* topbar — hide text label of WS status, keep dot */
+    .ws-label{display:none}
+    /* stat card numbers slightly smaller */
+    .stat-value{font-size:1.6rem}
+    /* activity log items wrap cleanly */
+    #activityLog li{flex-wrap:wrap;gap:4px}
+    .log-time{width:100%;order:-1}
+    /* fall modal padding */
+    .fall-modal{padding:32px 24px}
+    /* search btn — shrink label on very small screens */
+    .search-btn span{display:none}
+}
+
+/* ══ VERY SMALL (≤ 360px) ══ */
+@media(max-width:360px){
+    .topbar{padding:0 12px}
+    .page-content{padding:10px}
+    .stat-card{padding:16px}
+    .chart-card,.activity-card{padding:16px}
 }
 </style>
 </head>

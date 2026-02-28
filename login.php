@@ -166,7 +166,21 @@ h2{font-size:1.55rem;font-weight:700;color:#1a1a2e;margin-bottom:20px}
 .submit-btn:hover{opacity:.9;transform:translateY(-1px)}
 .error-msg{background:#fff0f0;border:1px solid #ffcccc;color:#cc0000;padding:9px 13px;border-radius:8px;font-size:.83rem;margin-bottom:14px}
 .qr-err{background:#fff8e1;border:1px solid #ffe082;color:#b45309;padding:9px 13px;border-radius:8px;font-size:.83rem;margin-bottom:14px}
-@media(max-width:620px){.card{flex-direction:column}.left-panel{width:100%;min-width:unset;padding:32px 28px}}
+@media(max-width:620px){
+    .card{flex-direction:column;border-radius:0;min-height:100vh}
+    .left-panel{width:100%;min-width:unset;padding:28px 24px}
+    .left-panel h1{font-size:1.5rem;margin-bottom:16px}
+    .right-panel{padding:28px 24px}
+    h2{font-size:1.3rem}
+}
+@media(max-width:400px){
+    body{align-items:flex-start}
+    .card{max-width:100%;border-radius:0}
+    .right-panel{padding:22px 18px}
+    .left-panel{padding:22px 18px}
+    .submit-btn{font-size:.85rem;padding:12px}
+    .tab{font-size:.75rem;padding:8px 0}
+}
 </style>
 </head>
 <body>
