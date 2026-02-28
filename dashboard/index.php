@@ -219,6 +219,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
 .spinner{width:40px;height:40px;border:4px solid rgba(26,111,212,.15);border-top:4px solid var(--blue-main);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 10px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ── SETTINGS PAGE ── */
+.settings-card{background:#fff;border-radius:16px;padding:24px 26px;box-shadow:0 2px 12px rgba(30,90,180,.07);border:1px solid var(--border);margin-bottom:18px}
+.settings-card h3{font-size:.95rem;font-weight:700;margin-bottom:18px;color:var(--text-dark)}
+.stabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:22px}
+.stab{padding:10px 20px;font-size:.84rem;font-weight:600;color:var(--text-light);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .2s}
+.stab.active{color:var(--blue-main);border-bottom-color:var(--blue-main);background:linear-gradient(to bottom,#f0f7ff,#fff)}
+.spanel{display:none}.spanel.active{display:block}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px}
+.settings-grid .full{grid-column:1/-1}
+.sfield-label{display:block;font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.sfield-input{width:100%;border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-size:.9rem;color:var(--text-dark);background:#fafcff;outline:none;font-family:inherit;transition:border-color .2s}
+.sfield-input:focus{border-color:var(--blue-main);background:#fff}
+.sfield-input:disabled{background:#f8fafc;color:#94a3b8;cursor:not-allowed}
+.thresh-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px 16px}
+.settings-banner{padding:10px 14px;border-radius:8px;font-size:.83rem;margin-bottom:16px;display:none}
+.settings-banner.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
+.settings-banner.err{background:#fff1f2;border:1px solid #fecdd3;color:#be123c}
+.viewonly-notice{background:#fff8e1;border:1px solid #ffe082;border-radius:9px;padding:10px 14px;font-size:.83rem;color:#b45309;margin-bottom:16px}
+@media(max-width:600px){.settings-grid{grid-template-columns:1fr}.thresh-grid{grid-template-columns:1fr 1fr}}
+
 /* ══ HAMBURGER BUTTON (hidden on desktop) ══ */
 .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px;border-radius:8px;transition:background .2s}
 .hamburger:hover{background:#f0f6ff}
@@ -311,10 +331,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
 
 <nav class="sidebar-nav">
     <div class="nav-label">Overview</div>
-    <a class="nav-item active">
+    <button class="nav-item active" id="navDashboard" onclick="showPage('dashboard')">
         <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
         Dashboard
-    </a>
+    </button>
+    <button class="nav-item" id="navSettings" onclick="showPage('settings')">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96a7.06 7.06 0 00-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54a7.41 7.41 0 00-1.62.94l-2.39-.96a.476.476 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54a7.41 7.41 0 001.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        Settings
+    </button>
 </nav>
 
 <div class="sidebar-logout">
@@ -348,7 +372,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
     </div>
 </header>
 
-<main class="page-content">
+<main class="page-content" id="dashboardPage">
 
     <div class="stat-cards">
         <!-- Heart Rate -->
@@ -405,6 +429,127 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
         </ul>
     </div>
 </main>
+
+<!-- ══ SETTINGS PAGE ══ -->
+<main class="page-content" id="settingsPage" style="display:none;">
+<div style="max-width:820px;margin:0 auto;">
+    <h2 style="font-size:1.2rem;font-weight:700;color:var(--text-dark);margin-bottom:4px;">Device Settings</h2>
+    <p style="font-size:.85rem;color:var(--text-light);margin-bottom:22px;">Changes update both local and online databases.</p>
+
+    <?php if (strtolower($userRole) === 'patient'): ?>
+    <div class="viewonly-notice">⚠️ You have view-only access. Contact your caregiver to make changes.</div>
+    <?php endif; ?>
+
+    <div id="settingsBanner" class="settings-banner"></div>
+
+    <div class="settings-card">
+        <div class="stabs">
+            <div class="stab active" id="stab-personal" onclick="showStab('personal')">Personal Info</div>
+            <div class="stab" id="stab-thresholds" onclick="showStab('thresholds')">HR Thresholds</div>
+        </div>
+
+        <!-- Personal Info Panel -->
+        <div class="spanel active" id="spanel-personal">
+            <form id="personalForm">
+            <div class="settings-grid">
+                <div>
+                    <label class="sfield-label">First Name</label>
+                    <input class="sfield-input" type="text" name="first_name" value="<?= htmlspecialchars($firstName) ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div>
+                    <label class="sfield-label">Last Name</label>
+                    <input class="sfield-input" type="text" name="last_name" value="<?= htmlspecialchars($lastName) ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div>
+                    <label class="sfield-label">Middle Name</label>
+                    <input class="sfield-input" type="text" name="middle_name" value="<?= htmlspecialchars($patientData['middlename']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div>
+                    <label class="sfield-label">Birth Date</label>
+                    <input class="sfield-input" type="date" name="birth_date" value="<?= htmlspecialchars($patientData['birthdate']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div>
+                    <label class="sfield-label">Gender</label>
+                    <select class="sfield-input" name="gender" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                        <option value="">Select</option>
+                        <option value="Male" <?= ($patientData['gender']??'')==='Male'?'selected':'' ?>>Male</option>
+                        <option value="Female" <?= ($patientData['gender']??'')==='Female'?'selected':'' ?>>Female</option>
+                        <option value="Other" <?= ($patientData['gender']??'')==='Other'?'selected':'' ?>>Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="sfield-label">Phone Number</label>
+                    <input class="sfield-input" type="tel" name="phone" value="<?= htmlspecialchars($patientData['phonenumber']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div class="full">
+                    <label class="sfield-label">Address</label>
+                    <input class="sfield-input" type="text" name="address" value="<?= htmlspecialchars($patientData['addressline']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div>
+                    <label class="sfield-label">City</label>
+                    <input class="sfield-input" type="text" name="city" value="<?= htmlspecialchars($patientData['city']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div>
+                    <label class="sfield-label">Province</label>
+                    <input class="sfield-input" type="text" name="province" value="<?= htmlspecialchars($patientData['province']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div>
+                    <label class="sfield-label">Emergency Contact</label>
+                    <input class="sfield-input" type="text" name="emergency_name" value="<?= htmlspecialchars($patientData['emergencycontactname']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div>
+                    <label class="sfield-label">Emergency Phone</label>
+                    <input class="sfield-input" type="tel" name="emergency_number" value="<?= htmlspecialchars($patientData['emergencycontactnumber']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+                <div>
+                    <label class="sfield-label">Relationship</label>
+                    <input class="sfield-input" type="text" name="emergency_relation" value="<?= htmlspecialchars($patientData['emergencyrelationship']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
+                </div>
+            </div>
+            <div style="margin-top:20px;display:flex;justify-content:flex-end;">
+                <?php if (strtolower($userRole) !== 'patient'): ?>
+                <button type="submit" style="background:linear-gradient(135deg,var(--blue-main),#0d3580);color:#fff;border:none;border-radius:9px;padding:11px 30px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;">Save Personal Info</button>
+                <?php else: ?>
+                <button type="button" disabled style="background:#e2e8f0;color:#94a3b8;border:none;border-radius:9px;padding:11px 30px;font-size:.9rem;font-weight:700;cursor:not-allowed;font-family:inherit;">View Only</button>
+                <?php endif; ?>
+            </div>
+            </form>
+        </div>
+
+        <!-- HR Thresholds Panel -->
+        <div class="spanel" id="spanel-thresholds">
+            <form id="thresholdsForm">
+            <div class="thresh-grid">
+                <?php
+                function onfield($label, $name, $val, $disabled) {
+                    $dis = $disabled ? 'disabled' : '';
+                    echo "<div>
+                        <label class='sfield-label'>$label <span style='font-weight:400;color:#aaa;'>(BPM)</span></label>
+                        <input type='number' name='$name' value='$val' min='20' max='250' class='sfield-input' style='text-align:center;font-weight:700;' $dis>
+                    </div>";
+                }
+                $isPatient = strtolower($userRole) === 'patient';
+                onfield('Resting Min',  'resting_min', $restMin,   $isPatient);
+                onfield('Resting Max',  'resting_max', $restMax,   $isPatient);
+                onfield('Active Min',   'active_min',  $actMin,    $isPatient);
+                onfield('Active Max',   'active_max',  $actMax,    $isPatient);
+                onfield('Critical',     'critical',    $critical,  $isPatient);
+                ?>
+            </div>
+            <div style="margin-top:20px;display:flex;justify-content:flex-end;">
+                <?php if (!$isPatient): ?>
+                <button type="submit" style="background:linear-gradient(135deg,var(--blue-main),#0d3580);color:#fff;border:none;border-radius:9px;padding:11px 30px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;">Save HR Thresholds</button>
+                <?php else: ?>
+                <button type="button" disabled style="background:#e2e8f0;color:#94a3b8;border:none;border-radius:9px;padding:11px 30px;font-size:.9rem;font-weight:700;cursor:not-allowed;font-family:inherit;">View Only</button>
+                <?php endif; ?>
+            </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+</main>
+
 </div>
 
 <!-- ══ FALL MODAL ══ -->
@@ -677,6 +822,65 @@ function printEventResults() {
     w.document.close();
     w.print();
 }
+
+// ── Page switching ──
+function showPage(page) {
+    const dash = document.getElementById('dashboardPage');
+    const sett = document.getElementById('settingsPage');
+    const navD = document.getElementById('navDashboard');
+    const navS = document.getElementById('navSettings');
+    if (page === 'settings') {
+        dash.style.display = 'none';
+        sett.style.display = 'block';
+        navD.classList.remove('active');
+        navS.classList.add('active');
+    } else {
+        dash.style.display = 'block';
+        sett.style.display = 'none';
+        navD.classList.add('active');
+        navS.classList.remove('active');
+    }
+}
+
+// ── Settings tab switching ──
+function showStab(name) {
+    document.querySelectorAll('.spanel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.stab').forEach(t => t.classList.remove('active'));
+    document.getElementById('spanel-' + name).classList.add('active');
+    document.getElementById('stab-' + name).classList.add('active');
+}
+
+// ── Settings form submit ──
+async function submitSettings(section, formId) {
+    const form = document.getElementById(formId);
+    const data = Object.fromEntries(new FormData(form).entries());
+    data.section = section;
+    const banner = document.getElementById('settingsBanner');
+    banner.style.display = 'none';
+    try {
+        const res  = await fetch('save_settings.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        banner.className = 'settings-banner ' + (json.success ? 'ok' : 'err');
+        banner.textContent = json.success ? '✓ ' + (json.message || 'Saved successfully.') : '✗ ' + (json.error || 'Save failed.');
+        banner.style.display = 'block';
+        setTimeout(() => { banner.style.display = 'none'; }, 4000);
+    } catch (e) {
+        banner.className = 'settings-banner err';
+        banner.textContent = '✗ Network error. Check connection.';
+        banner.style.display = 'block';
+    }
+}
+
+document.getElementById('personalForm')?.addEventListener('submit', e => {
+    e.preventDefault(); submitSettings('personal', 'personalForm');
+});
+document.getElementById('thresholdsForm')?.addEventListener('submit', e => {
+    e.preventDefault(); submitSettings('thresholds', 'thresholdsForm');
+});
 
 document.getElementById('applyFilter').addEventListener('click', async () => {
     const types = [...document.querySelectorAll('.evType:checked')].map(c => c.value);
