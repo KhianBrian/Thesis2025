@@ -75,7 +75,7 @@ $caregiverLinks = $pdo->query("
     ORDER BY u.username
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-$caregivers = $pdo->query("SELECT userid, username FROM user_table WHERE LOWER(role)='caregiver' ORDER BY username")->fetchAll(PDO::FETCH_ASSOC);
+$caregivers = $pdo->query("SELECT userid, username FROM user_table WHERE role::text ILIKE 'caregiver' ORDER BY username")->fetchAll(PDO::FETCH_ASSOC);
 $patients   = $pdo->query("SELECT patientid, firstname, lastname FROM patient_table ORDER BY firstname")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
