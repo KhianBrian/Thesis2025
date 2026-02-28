@@ -18,22 +18,41 @@ require_once dirname(__DIR__) . '/db_connect.php';
 
 // ── Pull patient data from PostgreSQL (all lowercase cols) ──────────
 $uid          = $_SESSION['user_id'];
+$userRole     = strtolower($_SESSION['role'] ?? 'patient');
 $patientData  = [];
 $threshold    = [];
 $health       = [];
 
-$ps = $pdo->prepare("SELECT * FROM patient_table WHERE userid = ? LIMIT 1");
-$ps->execute([$uid]);
-$patientData = $ps->fetch() ?: [];
+if ($userRole === 'caregiver') {
+    // Caregiver → resolve their assigned patient via caregiver_table
+    // patient_id may already be in session from QR token
+    $cgPid = $_SESSION['patient_id'] ?? null;
+    if (!$cgPid) {
+        $cg = $pdo->prepare("SELECT patientid FROM caregiver_table WHERE userid = $1 LIMIT 1");
+        $cg->execute([$uid]);
+        $cgRow = $cg->fetch();
+        $cgPid = $cgRow['patientid'] ?? null;
+    }
+    if ($cgPid) {
+        $ps = $pdo->prepare("SELECT * FROM patient_table WHERE patientid = $1 LIMIT 1");
+        $ps->execute([$cgPid]);
+        $patientData = $ps->fetch() ?: [];
+    }
+} else {
+    // Patient → direct lookup by userid
+    $ps = $pdo->prepare("SELECT * FROM patient_table WHERE userid = $1 LIMIT 1");
+    $ps->execute([$uid]);
+    $patientData = $ps->fetch() ?: [];
+}
 
 if (!empty($patientData)) {
     $_SESSION['patient_id'] = $patientData['patientid'];
 
-    $ts = $pdo->prepare("SELECT * FROM hr_threshold_table WHERE patientid = ? LIMIT 1");
+    $ts = $pdo->prepare("SELECT * FROM hr_threshold_table WHERE patientid = $1 LIMIT 1");
     $ts->execute([$patientData['patientid']]);
     $threshold = $ts->fetch() ?: [];
 
-    $hs = $pdo->prepare("SELECT * FROM healthhistory_table WHERE patientid = ? ORDER BY recorddate DESC LIMIT 1");
+    $hs = $pdo->prepare("SELECT * FROM healthhistory_table WHERE patientid = $1 ORDER BY recorddate DESC LIMIT 1");
     $hs->execute([$patientData['patientid']]);
     $health = $hs->fetch() ?: [];
 }
@@ -53,7 +72,8 @@ $actMin     = (int)($threshold['activemin']     ?? 100);
 $actMax     = (int)($threshold['activemax']     ?? 170);
 $critical   = (int)($threshold['criticallevel'] ?? 150);
 
-$userRole   = $_SESSION['role']     ?? 'patient';
+// $userRole already set above during patient data loading
+$userRole   = $userRole ?? 'patient';
 $username   = $_SESSION['username'] ?? 'user';
 
 $hour = (int)date('H');
@@ -417,6 +437,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
                 <select id="limitSel"><option value="50">50</option><option value="100" selected>100</option><option value="500">500</option></select>
             </div>
             <button class="apply-btn" id="applyFilter">Search</button>
+            <?php if ($userRole !== 'patient'): ?>
+            <button class="apply-btn" id="printResults" onclick="printEventResults()" style="background:#0f766e;">Print</button>
+            <?php endif; ?>
         </div>
         <div id="resultCount" style="font-size:.8rem;color:var(--text-light);margin-bottom:8px;text-align:right;min-height:1.2em"></div>
         <div id="searchLoading" style="display:none;text-align:center;padding:28px">
@@ -437,34 +460,6 @@ const HIGH_HR  = <?= $restMax ?>;
 const CRIT_HR  = <?= $critical ?>;
 const MAX_PTS  = 30;
 const MAX_LOGS = 15;
-
-// ── Critical streak (noise-resistant alert) ──
-const CRIT_STREAK_NEEDED = 3;
-let critStreak = 0;
-let critAlertShown = false;
-
-function showNotification(message, type) {
-    const existing = document.getElementById('vlNotif');
-    if (existing) existing.remove();
-    const colors = {
-        critical: { bg:'#ff2d2d', border:'#cc0000', icon:'🚨' },
-        fall:     { bg:'#7b00ff', border:'#5500cc', icon:'🆘' },
-    };
-    const c = colors[type] || colors.critical;
-    const banner = document.createElement('div');
-    banner.id = 'vlNotif';
-    banner.style.cssText = [
-        'position:fixed','top:20px','left:50%','transform:translateX(-50%)',
-        'z-index:99999','background:'+c.bg,'border:2px solid '+c.border,
-        'color:#fff','padding:16px 28px','border-radius:12px',
-        'font-size:1rem','font-weight:700','font-family:inherit',
-        'box-shadow:0 8px 32px rgba(0,0,0,.35)',
-        'display:flex','align-items:center','gap:12px','max-width:90vw'
-    ].join(';');
-    banner.innerHTML = `<span style="font-size:1.5rem">${c.icon}</span><span>${message}</span>
-        <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-size:1rem;cursor:pointer;padding:2px 8px;border-radius:6px;margin-left:8px">✕</button>`;
-    document.body.appendChild(banner);
-}
 const WS_URL   = "wss://thesis2025-h4v3.onrender.com/ws";
 
 // ══ WEBSOCKET ══════════════════════════════
@@ -542,32 +537,22 @@ function handleMessage(e) {
             el.style.color = 'var(--danger)';
             logEvent('⚠️ Critical HR: ' + bpm + ' BPM', 'red');
             document.getElementById('hrSub').innerHTML = '<span class="stat-dot red"></span> Critical — above ' + CRIT_HR + ' BPM';
-            // Streak counter — only alert after 3 consecutive critical readings
-            critStreak++;
-            if (critStreak >= CRIT_STREAK_NEEDED && !critAlertShown) {
-                critAlertShown = true;
-                showNotification('Critical heart rate: ' + bpm + ' BPM — ' + critStreak + ' consecutive readings!', 'critical');
-            }
         } else if (bpm > HIGH_HR) {
             el.style.color = 'var(--warning)';
             logEvent('↑ High HR: ' + bpm + ' BPM', 'warn');
             document.getElementById('hrSub').innerHTML = '<span class="stat-dot warn"></span> Above resting range';
-            critStreak = 0; critAlertShown = false;
         } else if (bpm < LOW_HR) {
             el.style.color = 'var(--warning)';
             logEvent('↓ Low HR: ' + bpm + ' BPM', 'warn');
             document.getElementById('hrSub').innerHTML = '<span class="stat-dot warn"></span> Below resting range';
-            critStreak = 0; critAlertShown = false;
         } else {
             el.classList.add('bpm');
             document.getElementById('hrSub').innerHTML = '<span class="stat-dot blue"></span> Normal range';
-            critStreak = 0; critAlertShown = false;
         }
     }
 
     if (d.type === 'fall') {
         triggerFall();
-        showNotification('Fall detected! Height: ' + (d.height ?? '?') + ' meters', 'fall');
         logEvent('🚨 Fall detected! Height: ' + (d.height ?? '?') + ' m', 'red');
     }
 }
@@ -658,6 +643,40 @@ document.addEventListener('keydown', e => {
         else closeSidebar();
     }
 });
+
+// ── Print event results ──
+function printEventResults() {
+    const rows = document.querySelectorAll('#resultsTbody tr');
+    if (!rows.length || (rows.length === 1 && rows[0].cells.length === 1)) {
+        alert('No results to print. Please search first.');
+        return;
+    }
+    const start = document.getElementById('startTime').value || 'All time';
+    const end   = document.getElementById('endTime').value   || 'All time';
+    let html = `<html><head><title>VitalLink Event Report</title>
+        <style>
+            body{font-family:Arial,sans-serif;padding:24px}
+            h2{color:#1a6fd4;margin-bottom:4px}
+            p{color:#64748b;font-size:.85rem;margin-bottom:16px}
+            table{width:100%;border-collapse:collapse}
+            th{background:#1a6fd4;color:#fff;padding:10px;text-align:left;font-size:.85rem}
+            td{padding:9px 10px;border-bottom:1px solid #e2e8f0;font-size:.85rem}
+            tr:nth-child(even) td{background:#f8fafc}
+        </style></head><body>
+        <h2>VitalLink Event Report</h2>
+        <p>From: ${start} &nbsp;|&nbsp; To: ${end}</p>
+        <table><thead><tr><th>Time</th><th>Event</th><th>Value</th><th>Height</th></tr></thead><tbody>`;
+    rows.forEach(row => {
+        html += '<tr>';
+        row.querySelectorAll('td').forEach(td => { html += `<td>${td.innerText}</td>`; });
+        html += '</tr>';
+    });
+    html += '</tbody></table></body></html>';
+    const w = window.open('', '_blank');
+    w.document.write(html);
+    w.document.close();
+    w.print();
+}
 
 document.getElementById('applyFilter').addEventListener('click', async () => {
     const types = [...document.querySelectorAll('.evType:checked')].map(c => c.value);

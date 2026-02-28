@@ -51,7 +51,12 @@ if (isset($_GET['t'])) {
                 $_SESSION['patient_id']   = $payload['pid']    ?? null;
                 $_SESSION['qr_auth']      = true;
 
-                header("Location: /dashboard/");
+                $qrRole = strtolower($payload['role'] ?? 'patient');
+                if ($qrRole === 'admin') {
+                    header("Location: /admin.php");
+                } else {
+                    header("Location: /dashboard/");
+                }
                 exit();
             } elseif ($payload && time() > (int)$payload['exp']) {
                 $qrError = "QR code expired (valid 24 hrs). Scan a fresh one from the RPi dashboard.";
@@ -90,13 +95,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $dispName = $pat ? trim(($pat['firstname']??'').' '.($pat['lastname']??'')) : $user['username'];
 
+            $role = strtolower($user['role']);
+
+            // For caregiver, resolve their assigned patient from caregiver_table
+            $patientId = $pat['patientid'] ?? null;
+            if ($role === 'caregiver' && !$patientId) {
+                $cgq = $pdo->prepare("SELECT patientid FROM caregiver_table WHERE userid = $1 LIMIT 1");
+                $cgq->execute([$user['userid']]);
+                $cgRow = $cgq->fetch();
+                $patientId = $cgRow['patientid'] ?? null;
+            }
+
             $_SESSION['user_id']      = $user['userid'];
             $_SESSION['username']     = $user['username'];
-            $_SESSION['role']         = strtolower($user['role']);
+            $_SESSION['role']         = $role;
             $_SESSION['display_name'] = $dispName ?: $user['username'];
-            $_SESSION['patient_id']   = $pat['patientid'] ?? null;
+            $_SESSION['patient_id']   = $patientId;
 
-            header("Location: /dashboard/");
+            if ($role === 'admin') {
+                header("Location: /admin.php");
+            } else {
+                header("Location: /dashboard/");
+            }
             exit();
         }
     } else {
