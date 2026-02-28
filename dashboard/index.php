@@ -437,6 +437,34 @@ const HIGH_HR  = <?= $restMax ?>;
 const CRIT_HR  = <?= $critical ?>;
 const MAX_PTS  = 30;
 const MAX_LOGS = 15;
+
+// ── Critical streak (noise-resistant alert) ──
+const CRIT_STREAK_NEEDED = 3;
+let critStreak = 0;
+let critAlertShown = false;
+
+function showNotification(message, type) {
+    const existing = document.getElementById('vlNotif');
+    if (existing) existing.remove();
+    const colors = {
+        critical: { bg:'#ff2d2d', border:'#cc0000', icon:'🚨' },
+        fall:     { bg:'#7b00ff', border:'#5500cc', icon:'🆘' },
+    };
+    const c = colors[type] || colors.critical;
+    const banner = document.createElement('div');
+    banner.id = 'vlNotif';
+    banner.style.cssText = [
+        'position:fixed','top:20px','left:50%','transform:translateX(-50%)',
+        'z-index:99999','background:'+c.bg,'border:2px solid '+c.border,
+        'color:#fff','padding:16px 28px','border-radius:12px',
+        'font-size:1rem','font-weight:700','font-family:inherit',
+        'box-shadow:0 8px 32px rgba(0,0,0,.35)',
+        'display:flex','align-items:center','gap:12px','max-width:90vw'
+    ].join(';');
+    banner.innerHTML = `<span style="font-size:1.5rem">${c.icon}</span><span>${message}</span>
+        <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-size:1rem;cursor:pointer;padding:2px 8px;border-radius:6px;margin-left:8px">✕</button>`;
+    document.body.appendChild(banner);
+}
 const WS_URL   = "wss://thesis2025-h4v3.onrender.com/ws";
 
 // ══ WEBSOCKET ══════════════════════════════
@@ -514,22 +542,32 @@ function handleMessage(e) {
             el.style.color = 'var(--danger)';
             logEvent('⚠️ Critical HR: ' + bpm + ' BPM', 'red');
             document.getElementById('hrSub').innerHTML = '<span class="stat-dot red"></span> Critical — above ' + CRIT_HR + ' BPM';
+            // Streak counter — only alert after 3 consecutive critical readings
+            critStreak++;
+            if (critStreak >= CRIT_STREAK_NEEDED && !critAlertShown) {
+                critAlertShown = true;
+                showNotification('Critical heart rate: ' + bpm + ' BPM — ' + critStreak + ' consecutive readings!', 'critical');
+            }
         } else if (bpm > HIGH_HR) {
             el.style.color = 'var(--warning)';
             logEvent('↑ High HR: ' + bpm + ' BPM', 'warn');
             document.getElementById('hrSub').innerHTML = '<span class="stat-dot warn"></span> Above resting range';
+            critStreak = 0; critAlertShown = false;
         } else if (bpm < LOW_HR) {
             el.style.color = 'var(--warning)';
             logEvent('↓ Low HR: ' + bpm + ' BPM', 'warn');
             document.getElementById('hrSub').innerHTML = '<span class="stat-dot warn"></span> Below resting range';
+            critStreak = 0; critAlertShown = false;
         } else {
             el.classList.add('bpm');
             document.getElementById('hrSub').innerHTML = '<span class="stat-dot blue"></span> Normal range';
+            critStreak = 0; critAlertShown = false;
         }
     }
 
     if (d.type === 'fall') {
         triggerFall();
+        showNotification('Fall detected! Height: ' + (d.height ?? '?') + ' meters', 'fall');
         logEvent('🚨 Fall detected! Height: ' + (d.height ?? '?') + ' m', 'red');
     }
 }
