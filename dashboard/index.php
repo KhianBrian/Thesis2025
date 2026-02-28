@@ -494,10 +494,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
                     <input class="sfield-input" type="text" name="province" value="<?= htmlspecialchars($patientData['province']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
                 </div>
                 <div>
-                    <label class="sfield-label">Postal Code</label>
-                    <input class="sfield-input" type="text" name="postal_code" value="<?= htmlspecialchars($patientData['postalcode']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
-                </div>
-                <div>
                     <label class="sfield-label">Emergency Contact</label>
                     <input class="sfield-input" type="text" name="emergency_name" value="<?= htmlspecialchars($patientData['emergencycontactname']??'') ?>" <?= strtolower($userRole)==='patient'?'disabled':'' ?>>
                 </div>
@@ -522,11 +518,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
 
         <!-- HR Thresholds Panel -->
         <div class="spanel" id="spanel-thresholds">
-            <div style="font-size:.8rem;color:#64748b;padding:12px 14px;background:#f0f7ff;border-radius:9px;border-left:3px solid var(--blue-main);margin-bottom:20px;">
-                💡 <strong>These values replace your current thresholds.</strong>
-                The receiver uses these to classify each HR reading as Low / Normal / High / Critical.
-                Typical adult defaults: Resting 50–100 BPM · Active 100–170 BPM · Critical 150 BPM.
-            </div>
             <form id="thresholdsForm">
             <div class="thresh-grid">
                 <?php
@@ -581,22 +572,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--blue-pale);color:var(--te
         <div class="checkbox-row">
             <label><input type="checkbox" class="evType" value="HeartRate" checked> Heart Rate</label>
             <label><input type="checkbox" class="evType" value="Fall" checked> Fall</label>
+            <label><input type="checkbox" class="evType" value="Height"> Height</label>
         </div>
         <div class="filter-row">
             <div><label>From</label><input type="datetime-local" id="startTime"></div>
             <div><label>To</label><input type="datetime-local" id="endTime"></div>
             <div>
                 <label>Max results</label>
-                <select id="limitSel">
-                    <option value="100">100 results</option>
-                    <option value="500">500 results</option>
-                    <option value="1000">1000 results</option>
-                    <option value="9999">All results</option>
-                </select>
+                <select id="limitSel"><option value="50">50</option><option value="100" selected>100</option><option value="500">500</option></select>
             </div>
             <button class="apply-btn" id="applyFilter">Search</button>
             <?php if ($userRole !== 'patient'): ?>
-            <button class="apply-btn" id="printResults" onclick="printEventResults()" style="background:#0f766e;margin-left:8px;">🖨️ Print</button>
+            <button class="apply-btn" id="printResults" onclick="printEventResults()" style="background:#0f766e;">Print</button>
             <?php endif; ?>
         </div>
         <div id="resultCount" style="font-size:.8rem;color:var(--text-light);margin-bottom:8px;text-align:right;min-height:1.2em"></div>
@@ -926,32 +913,14 @@ document.getElementById('applyFilter').addEventListener('click', async () => {
         const countEl = document.getElementById('resultCount');
         if (countEl) countEl.textContent = json.data.length + ' result' + (json.data.length !== 1 ? 's' : '');
         json.data.forEach(row => {
-
-    let value = '--';
-    let height = '--';
-
-    if (row.eventtype === 'HeartRate') {
-        value = row.heartrate !== null ? row.heartrate + ' BPM' : '--';
-    }
-
-    if (row.eventtype === 'Fall') {
-        value = 'FALL';
-    }
-
-    if (row.heightcm !== null) {
-        height = row.heightcm + ' cm';
-    }
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-        <td>${new Date(row.eventtime).toLocaleString()}</td>
-        <td>${row.eventtype}</td>
-        <td>${value}</td>
-        <td>${height}</td>
-    `;
-
-    document.getElementById('resultsTbody').appendChild(tr);
-});
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${new Date(row.eventtime).toLocaleString()}</td>
+                <td>${row.eventtype}</td>
+                <td>${row.value ?? '--'}</td>
+                <td>${row.height ?? 'N/A'}</td>`;
+            document.getElementById('resultsTbody').appendChild(tr);
+        });
     } catch(err) {
         document.getElementById('searchLoading').style.display = 'none';
         document.getElementById('resultsTbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--danger)">Failed to load. Check server.</td></tr>';

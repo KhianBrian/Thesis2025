@@ -7,25 +7,26 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 try {
     require_once __DIR__ . '/../db_connect.php';
 
-    // Accept GET params
     $types = $_GET['types'] ?? [];
+    if (!is_array($types)) $types = [$types];
+
     $start = $_GET['start'] ?? null;
     $end   = $_GET['end']   ?? null;
     $limit = min((int)($_GET['limit'] ?? 100), 99999);
 
-    if (!is_array($types)) $types = [$types];
-
-    // Sanitise types
+    // Whitelist — safe to inline directly into SQL
     $allowed = ['HeartRate', 'Fall', 'Height'];
     $types   = array_values(array_intersect($types, $allowed));
-    if (empty($types)) $types = $allowed;
+    if (empty($types)) $types = ['HeartRate', 'Fall'];
 
-    $pgArray = '{' . implode(',', $types) . '}';
+    // Inline the whitelisted values directly — PDO params don't work for enum::text IN()
+    $inList = implode("','", $types); // e.g.  HeartRate','Fall
+    $inList = "'$inList'";            // e.g. 'HeartRate','Fall'
 
-    // Build query — date filters are optional
-    $params = [$pgArray];
-    $where  = "e.eventtype = ANY($1)";
-    $idx    = 2;
+    // Date and limit use proper params
+    $params = [];
+    $where  = "e.eventtype::text IN ($inList)";
+    $idx    = 1;
 
     if ($start) {
         $where   .= " AND e.eventtime >= \$$idx";
@@ -43,7 +44,7 @@ try {
     $sql = "
         SELECT
             e.eventid,
-            e.eventtype,
+            e.eventtype::text AS eventtype,
             e.eventtime,
             hr.heartrate,
             h.heightcm,
@@ -52,15 +53,15 @@ try {
              FROM event_table e2
              JOIN height_event ht2 ON ht2.eventid = e2.eventid
              WHERE e2.patientid = e.patientid
-               AND e2.eventtype = 'Height'
+               AND e2.eventtype::text = 'Height'
                AND ABS(EXTRACT(EPOCH FROM (e2.eventtime - e.eventtime))) <= 2
              ORDER BY ABS(EXTRACT(EPOCH FROM (e2.eventtime - e.eventtime)))
              LIMIT 1
             ) AS fallheightcm
         FROM event_table e
-        LEFT JOIN hr_event hr ON hr.eventid = e.eventid AND e.eventtype = 'HeartRate'
-        LEFT JOIN fall_event f ON f.eventid = e.eventid AND e.eventtype = 'Fall'
-        LEFT JOIN height_event h ON h.eventid = e.eventid AND e.eventtype = 'Height'
+        LEFT JOIN hr_event hr ON hr.eventid = e.eventid AND e.eventtype::text = 'HeartRate'
+        LEFT JOIN fall_event f  ON f.eventid  = e.eventid AND e.eventtype::text = 'Fall'
+        LEFT JOIN height_event h ON h.eventid = e.eventid AND e.eventtype::text = 'Height'
         WHERE $where
         ORDER BY e.eventtime DESC
         LIMIT \$$idx
@@ -70,7 +71,6 @@ try {
     $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Shape rows to match frontend expectations
     $events = array_map(function($row) {
         if ($row['eventtype'] === 'Fall') {
             $heightcm = $row['fallheightcm'] ?? null;
